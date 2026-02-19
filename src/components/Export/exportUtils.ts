@@ -26,6 +26,7 @@ export interface ExportOptions {
   dependencies: Dependency[];
   stickyNotes: StickyNote[];
   zoom: ZoomLevel;
+  dark?: boolean;
 }
 
 function getTimelineBounds(opts: ExportOptions) {
@@ -60,6 +61,29 @@ function renderToCanvas(opts: ExportOptions): HTMLCanvasElement {
   const { project, tasks, dependencies, stickyNotes, zoom } = opts;
   const { timelineStart, units, colWidth, gridWidth, totalWidth, totalHeight } = getTimelineBounds(opts);
 
+  const dark = opts.dark ?? false;
+  const colors = dark ? {
+    bg: '#111827',        // gray-900
+    headerBg: '#1f2937',  // gray-800
+    text: '#f9fafb',      // gray-50
+    textSecondary: '#9ca3af', // gray-400
+    gridLine: '#374151',  // gray-700
+    gridLineFine: '#1f2937', // gray-800
+    border: '#374151',    // gray-700
+    altRow: '#1a2332',
+    todayText: '#ef4444',
+  } : {
+    bg: '#ffffff',
+    headerBg: '#f9fafb',
+    text: '#111827',
+    textSecondary: '#6b7280',
+    gridLine: '#e5e7eb',
+    gridLineFine: '#f3f4f6',
+    border: '#d1d5db',
+    altRow: '#fafbfc',
+    todayText: '#ef4444',
+  };
+
   const scale = 2;
   const canvas = document.createElement('canvas');
   canvas.width = totalWidth * scale;
@@ -67,8 +91,8 @@ function renderToCanvas(opts: ExportOptions): HTMLCanvasElement {
   const ctx = canvas.getContext('2d')!;
   ctx.scale(scale, scale);
 
-  // White background
-  ctx.fillStyle = '#ffffff';
+  // Background
+  ctx.fillStyle = colors.bg;
   ctx.fillRect(0, 0, totalWidth, totalHeight);
 
   const ox = PADDING;
@@ -78,11 +102,11 @@ function renderToCanvas(opts: ExportOptions): HTMLCanvasElement {
   const bodyTop = headerTop + HEADER_HEIGHT;
 
   // ===== Project title =====
-  ctx.fillStyle = '#111827';
+  ctx.fillStyle = colors.text;
   ctx.font = `bold 16px ${FONT}`;
   ctx.fillText(project.name, ox, oy + 18);
 
-  ctx.fillStyle = '#6b7280';
+  ctx.fillStyle = colors.textSecondary;
   ctx.font = `11px ${FONT}`;
   const dateRange = `${format(parseISO(project.startDate), 'MMM d, yyyy')} – ${format(parseISO(project.endDate), 'MMM d, yyyy')}`;
   ctx.fillText(dateRange, ox, oy + 34);
@@ -92,7 +116,7 @@ function renderToCanvas(opts: ExportOptions): HTMLCanvasElement {
   ctx.textAlign = 'left';
 
   // ===== Header background =====
-  ctx.fillStyle = '#f9fafb';
+  ctx.fillStyle = colors.headerBg;
   ctx.fillRect(ox, headerTop, totalWidth - PADDING * 2, HEADER_HEIGHT);
 
   // ===== Grouped header (top half) =====
@@ -109,13 +133,13 @@ function renderToCanvas(opts: ExportOptions): HTMLCanvasElement {
   }
 
   ctx.font = `bold 10px ${FONT}`;
-  ctx.fillStyle = '#374151';
+  ctx.fillStyle = colors.text;
   ctx.textAlign = 'center';
   let gx = gridLeft;
   for (const g of groups) {
     const w = g.count * colWidth;
     ctx.fillText(g.label, gx + w / 2, headerTop + 18);
-    ctx.strokeStyle = '#e5e7eb';
+    ctx.strokeStyle = colors.gridLine;
     ctx.lineWidth = 0.5;
     ctx.beginPath();
     ctx.moveTo(gx + w, headerTop);
@@ -125,7 +149,7 @@ function renderToCanvas(opts: ExportOptions): HTMLCanvasElement {
   }
 
   // Mid-header divider
-  ctx.strokeStyle = '#e5e7eb';
+  ctx.strokeStyle = colors.gridLine;
   ctx.lineWidth = 0.5;
   ctx.beginPath();
   ctx.moveTo(gridLeft, headerTop + HEADER_HEIGHT / 2);
@@ -134,12 +158,12 @@ function renderToCanvas(opts: ExportOptions): HTMLCanvasElement {
 
   // ===== Unit labels (bottom half) =====
   ctx.font = `9px ${FONT}`;
-  ctx.fillStyle = '#6b7280';
+  ctx.fillStyle = colors.textSecondary;
   units.forEach((unit, i) => {
     const x = gridLeft + i * colWidth;
     ctx.fillText(formatUnitLabel(unit, zoom), x + colWidth / 2, headerTop + HEADER_HEIGHT / 2 + 18);
 
-    ctx.strokeStyle = '#f3f4f6';
+    ctx.strokeStyle = colors.gridLineFine;
     ctx.lineWidth = 0.5;
     ctx.beginPath();
     ctx.moveTo(x, headerTop + HEADER_HEIGHT / 2);
@@ -149,7 +173,7 @@ function renderToCanvas(opts: ExportOptions): HTMLCanvasElement {
   ctx.textAlign = 'left';
 
   // Header bottom border
-  ctx.strokeStyle = '#d1d5db';
+  ctx.strokeStyle = colors.border;
   ctx.lineWidth = 1;
   ctx.beginPath();
   ctx.moveTo(ox, headerTop + HEADER_HEIGHT);
@@ -157,7 +181,7 @@ function renderToCanvas(opts: ExportOptions): HTMLCanvasElement {
   ctx.stroke();
 
   // Task column header
-  ctx.fillStyle = '#6b7280';
+  ctx.fillStyle = colors.textSecondary;
   ctx.font = `bold 9px ${FONT}`;
   ctx.fillText('TASK', ox + 8, headerTop + 18);
 
@@ -165,10 +189,10 @@ function renderToCanvas(opts: ExportOptions): HTMLCanvasElement {
   units.forEach((unit, i) => {
     const x = gridLeft + i * colWidth;
     if (zoom === 'day' && isWeekend(unit)) {
-      ctx.fillStyle = '#f9fafb';
+      ctx.fillStyle = colors.headerBg;
       ctx.fillRect(x, bodyTop, colWidth, tasks.length * ROW_HEIGHT);
     }
-    ctx.strokeStyle = '#f3f4f6';
+    ctx.strokeStyle = colors.gridLineFine;
     ctx.lineWidth = 0.5;
     ctx.beginPath();
     ctx.moveTo(x, bodyTop);
@@ -179,7 +203,7 @@ function renderToCanvas(opts: ExportOptions): HTMLCanvasElement {
   // ===== Today line =====
   const todayX = gridLeft + dateToPixelOffset(new Date(), timelineStart, zoom);
   if (todayX > gridLeft && todayX < gridLeft + gridWidth) {
-    ctx.strokeStyle = '#ef4444';
+    ctx.strokeStyle = colors.todayText;
     ctx.lineWidth = 1.5;
     ctx.setLineDash([4, 2]);
     ctx.beginPath();
@@ -187,7 +211,7 @@ function renderToCanvas(opts: ExportOptions): HTMLCanvasElement {
     ctx.lineTo(todayX, bodyTop + tasks.length * ROW_HEIGHT);
     ctx.stroke();
     ctx.setLineDash([]);
-    ctx.fillStyle = '#ef4444';
+    ctx.fillStyle = colors.todayText;
     ctx.font = `bold 8px ${FONT}`;
     ctx.fillText('Today', todayX + 3, headerTop + 10);
   }
@@ -197,7 +221,7 @@ function renderToCanvas(opts: ExportOptions): HTMLCanvasElement {
     const rowY = bodyTop + i * ROW_HEIGHT;
 
     // Row divider
-    ctx.strokeStyle = '#f3f4f6';
+    ctx.strokeStyle = colors.gridLineFine;
     ctx.lineWidth = 0.5;
     ctx.beginPath();
     ctx.moveTo(ox, rowY + ROW_HEIGHT);
@@ -206,7 +230,7 @@ function renderToCanvas(opts: ExportOptions): HTMLCanvasElement {
 
     // Alternating row bg
     if (i % 2 === 1) {
-      ctx.fillStyle = '#fafbfc';
+      ctx.fillStyle = colors.altRow;
       ctx.fillRect(ox, rowY, TASK_LABEL_WIDTH, ROW_HEIGHT);
     }
 
@@ -223,7 +247,7 @@ function renderToCanvas(opts: ExportOptions): HTMLCanvasElement {
     }
 
     // Task label
-    ctx.fillStyle = '#1f2937';
+    ctx.fillStyle = colors.text;
     ctx.font = isSummary ? `bold 10px ${FONT}` : `10px ${FONT}`;
     const labelX = ox + (task.rag !== 'none' ? 18 : 8) + indent;
     const maxLabelWidth = TASK_LABEL_WIDTH - (labelX - ox) - 8;
@@ -303,7 +327,7 @@ function renderToCanvas(opts: ExportOptions): HTMLCanvasElement {
 
       // Bar label
       if (barWidth > 50) {
-        ctx.fillStyle = '#1f2937';
+        ctx.fillStyle = colors.text;
         ctx.font = `9px ${FONT}`;
         ctx.save();
         ctx.beginPath();
@@ -479,7 +503,7 @@ function renderToCanvas(opts: ExportOptions): HTMLCanvasElement {
 
     // Note text
     if (note.text) {
-      ctx.fillStyle = '#1f2937';
+      ctx.fillStyle = colors.text;
       ctx.font = `9px ${FONT}`;
       const lines = note.text.split('\n');
       const maxLines = 4;
@@ -495,12 +519,12 @@ function renderToCanvas(opts: ExportOptions): HTMLCanvasElement {
   }
 
   // ===== Outer border =====
-  ctx.strokeStyle = '#e5e7eb';
+  ctx.strokeStyle = colors.gridLine;
   ctx.lineWidth = 1;
   ctx.strokeRect(ox, headerTop, totalWidth - PADDING * 2, HEADER_HEIGHT + tasks.length * ROW_HEIGHT);
 
   // Vertical divider between labels and grid
-  ctx.strokeStyle = '#d1d5db';
+  ctx.strokeStyle = colors.border;
   ctx.lineWidth = 1;
   ctx.beginPath();
   ctx.moveTo(gridLeft, headerTop);

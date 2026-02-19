@@ -46,10 +46,10 @@ export default function TimelineGrid({ scrollTop, onScroll }: TimelineGridProps)
   const totalHeight = visibleTasks.length * ROW_HEIGHT;
 
   return (
-    <div className={`flex-1 flex flex-col overflow-hidden bg-white ${addNoteMode ? 'cursor-crosshair' : ''}`}>
+    <div className={`flex-1 flex flex-col overflow-hidden bg-white dark:bg-gray-900 ${addNoteMode ? 'cursor-crosshair' : ''}`}>
       {/* Add-note mode hint */}
       {addNoteMode && (
-        <div className="bg-amber-50 border-b border-amber-200 px-4 py-1.5 flex items-center justify-between text-xs text-amber-800">
+        <div className="bg-amber-50 dark:bg-amber-900/30 border-b border-amber-200 dark:border-amber-800 px-4 py-1.5 flex items-center justify-between text-xs text-amber-800 dark:text-amber-200">
           <span>Click on a task bar to add a sticky note</span>
           <button
             onClick={() => setAddNoteMode(false)}

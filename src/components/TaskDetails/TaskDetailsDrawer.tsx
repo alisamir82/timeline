@@ -27,10 +27,10 @@ function TagsEditor({ task, onUpdate }: { task: Task; onUpdate: (tags: string[])
 
   return (
     <div>
-      <label className="text-[11px] font-medium text-gray-500 uppercase tracking-wider">Tags</label>
+      <label className="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Tags</label>
       <div className="flex flex-wrap gap-1 mt-1">
         {task.tags.map((tag, i) => (
-          <span key={i} className="flex items-center gap-1 px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded-full group">
+          <span key={i} className="flex items-center gap-1 px-2 py-0.5 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 text-xs rounded-full group">
             {tag}
             <button
               onClick={() => onUpdate(task.tags.filter((_, idx) => idx !== i))}
@@ -51,25 +51,25 @@ function TagsEditor({ task, onUpdate }: { task: Task; onUpdate: (tags: string[])
               addTag(input);
             }
           }}
-          className="flex-1 px-2 py-1 border border-gray-200 rounded text-xs"
+          className="flex-1 px-2 py-1 border border-gray-200 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 rounded text-xs"
           placeholder="Add tag..."
           list="tag-suggestions"
         />
         <button
           onClick={() => addTag(input)}
           disabled={!input.trim()}
-          className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded hover:bg-gray-200 disabled:opacity-40"
+          className="px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 text-xs rounded hover:bg-gray-200 dark:hover:bg-gray-600 disabled:opacity-40"
         >
           <Plus className="w-3 h-3" />
         </button>
       </div>
       {input && suggestions.length > 0 && (
-        <div className="mt-1 border border-gray-200 rounded bg-white shadow-sm max-h-24 overflow-y-auto">
+        <div className="mt-1 border border-gray-200 dark:border-gray-600 rounded bg-white dark:bg-gray-800 shadow-sm max-h-24 overflow-y-auto">
           {suggestions.map((s) => (
             <button
               key={s}
               onClick={() => addTag(s)}
-              className="block w-full text-left px-2 py-1 text-xs text-gray-600 hover:bg-gray-50"
+              className="block w-full text-left px-2 py-1 text-xs text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
             >
               {s}
             </button>
@@ -124,12 +124,12 @@ export default function TaskDetailsDrawer() {
   };
 
   return (
-    <div className="w-96 border-l border-gray-200 bg-white flex flex-col overflow-hidden shadow-lg">
+    <div className="w-96 border-l border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 flex flex-col overflow-hidden shadow-lg">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 bg-gray-50">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
         <div className="flex items-center gap-2">
           {task.type === 'milestone' && <Diamond className="w-4 h-4 text-purple-500" />}
-          <span className="text-sm font-semibold text-gray-700">Task Details</span>
+          <span className="text-sm font-semibold text-gray-700 dark:text-gray-200">Task Details</span>
         </div>
         <div className="flex items-center gap-1">
           <button
@@ -157,26 +157,26 @@ export default function TaskDetailsDrawer() {
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {/* Title */}
         <div>
-          <label className="text-[11px] font-medium text-gray-500 uppercase tracking-wider">
+          <label className="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
             Title
           </label>
           <input
             type="text"
             value={task.title}
             onChange={(e) => handleFieldChange('title', e.target.value)}
-            className="w-full mt-1 px-2 py-1.5 border border-gray-200 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-400"
+            className="w-full mt-1 px-2 py-1.5 border border-gray-200 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-400"
           />
         </div>
 
         {/* Type */}
         <div>
-          <label className="text-[11px] font-medium text-gray-500 uppercase tracking-wider">
+          <label className="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
             Type
           </label>
           <select
             value={task.type}
             onChange={(e) => handleFieldChange('type', e.target.value)}
-            className="w-full mt-1 px-2 py-1.5 border border-gray-200 rounded text-sm bg-white focus:outline-none focus:ring-1 focus:ring-blue-400"
+            className="w-full mt-1 px-2 py-1.5 border border-gray-200 dark:border-gray-600 rounded text-sm bg-white dark:bg-gray-800 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-blue-400"
           >
             <option value="task">Task</option>
             <option value="milestone">Milestone</option>
@@ -187,25 +187,25 @@ export default function TaskDetailsDrawer() {
         {/* Dates */}
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="text-[11px] font-medium text-gray-500 uppercase tracking-wider">
+            <label className="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
               Start Date
             </label>
             <input
               type="date"
               value={task.startDate}
               onChange={(e) => handleFieldChange('startDate', e.target.value)}
-              className="w-full mt-1 px-2 py-1.5 border border-gray-200 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-400"
+              className="w-full mt-1 px-2 py-1.5 border border-gray-200 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-400"
             />
           </div>
           <div>
-            <label className="text-[11px] font-medium text-gray-500 uppercase tracking-wider">
+            <label className="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
               End Date
             </label>
             <input
               type="date"
               value={task.endDate}
               onChange={(e) => handleFieldChange('endDate', e.target.value)}
-              className="w-full mt-1 px-2 py-1.5 border border-gray-200 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-400"
+              className="w-full mt-1 px-2 py-1.5 border border-gray-200 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-400"
             />
           </div>
         </div>
@@ -217,7 +217,7 @@ export default function TaskDetailsDrawer() {
 
         {/* Owner */}
         <div>
-          <label className="text-[11px] font-medium text-gray-500 uppercase tracking-wider">
+          <label className="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
             Owner
           </label>
           <select
@@ -227,7 +227,7 @@ export default function TaskDetailsDrawer() {
               handleFieldChange('ownerUserId', e.target.value || null);
               handleFieldChange('ownerText', user?.name || '');
             }}
-            className="w-full mt-1 px-2 py-1.5 border border-gray-200 rounded text-sm bg-white focus:outline-none focus:ring-1 focus:ring-blue-400"
+            className="w-full mt-1 px-2 py-1.5 border border-gray-200 dark:border-gray-600 rounded text-sm bg-white dark:bg-gray-800 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-blue-400"
           >
             <option value="">Unassigned</option>
             {users.map((u) => (
@@ -240,13 +240,13 @@ export default function TaskDetailsDrawer() {
 
         {/* Status */}
         <div>
-          <label className="text-[11px] font-medium text-gray-500 uppercase tracking-wider">
+          <label className="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
             Status
           </label>
           <select
             value={task.status}
             onChange={(e) => handleFieldChange('status', e.target.value)}
-            className="w-full mt-1 px-2 py-1.5 border border-gray-200 rounded text-sm bg-white focus:outline-none focus:ring-1 focus:ring-blue-400"
+            className="w-full mt-1 px-2 py-1.5 border border-gray-200 dark:border-gray-600 rounded text-sm bg-white dark:bg-gray-800 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-blue-400"
           >
             {DEFAULT_STATUSES.map((s) => (
               <option key={s} value={s}>
@@ -258,7 +258,7 @@ export default function TaskDetailsDrawer() {
 
         {/* RAG */}
         <div>
-          <label className="text-[11px] font-medium text-gray-500 uppercase tracking-wider">
+          <label className="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
             RAG Status
           </label>
           <div className="flex gap-2 mt-1">
@@ -280,7 +280,7 @@ export default function TaskDetailsDrawer() {
 
         {/* % Complete */}
         <div>
-          <label className="text-[11px] font-medium text-gray-500 uppercase tracking-wider">
+          <label className="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
             Progress ({task.percentComplete}%)
           </label>
           <input
@@ -296,7 +296,7 @@ export default function TaskDetailsDrawer() {
 
         {/* Color */}
         <div>
-          <label className="text-[11px] font-medium text-gray-500 uppercase tracking-wider">
+          <label className="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
             Color
           </label>
           <div className="flex gap-1.5 mt-1 flex-wrap">
@@ -315,14 +315,14 @@ export default function TaskDetailsDrawer() {
 
         {/* Notes */}
         <div>
-          <label className="text-[11px] font-medium text-gray-500 uppercase tracking-wider">
+          <label className="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
             Notes
           </label>
           <textarea
             value={task.notes}
             onChange={(e) => handleFieldChange('notes', e.target.value)}
             rows={3}
-            className="w-full mt-1 px-2 py-1.5 border border-gray-200 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-400 resize-none"
+            className="w-full mt-1 px-2 py-1.5 border border-gray-200 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-400 resize-none"
             placeholder="Add notes..."
           />
         </div>
@@ -333,7 +333,7 @@ export default function TaskDetailsDrawer() {
         {/* Custom Fields */}
         {customFields.length > 0 && (
           <div>
-            <h3 className="text-[11px] font-medium text-gray-500 uppercase tracking-wider mb-2">
+            <h3 className="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
               Custom Fields
             </h3>
             <div className="space-y-2">
@@ -341,12 +341,12 @@ export default function TaskDetailsDrawer() {
                 const val = fieldValues.find((v) => v.fieldDefinitionId === field.id);
                 return (
                   <div key={field.id}>
-                    <label className="text-xs text-gray-500">{field.name}</label>
+                    <label className="text-xs text-gray-500 dark:text-gray-400">{field.name}</label>
                     {field.fieldType === 'dropdown' ? (
                       <select
                         value={val?.value || ''}
                         onChange={(e) => updateCustomFieldValue(task.id, field.id, e.target.value)}
-                        className="w-full mt-0.5 px-2 py-1 border border-gray-200 rounded text-sm bg-white"
+                        className="w-full mt-0.5 px-2 py-1 border border-gray-200 dark:border-gray-600 rounded text-sm bg-white dark:bg-gray-800 dark:text-gray-100"
                       >
                         <option value="">--</option>
                         {field.options.map((opt) => (
@@ -364,14 +364,14 @@ export default function TaskDetailsDrawer() {
                             updateCustomFieldValue(task.id, field.id, String(e.target.checked))
                           }
                         />
-                        <span className="text-sm text-gray-600">{field.name}</span>
+                        <span className="text-sm text-gray-600 dark:text-gray-300">{field.name}</span>
                       </label>
                     ) : (
                       <input
                         type={field.fieldType === 'number' ? 'number' : field.fieldType === 'date' ? 'date' : field.fieldType === 'url' ? 'url' : 'text'}
                         value={val?.value || ''}
                         onChange={(e) => updateCustomFieldValue(task.id, field.id, e.target.value)}
-                        className="w-full mt-0.5 px-2 py-1 border border-gray-200 rounded text-sm"
+                        className="w-full mt-0.5 px-2 py-1 border border-gray-200 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 rounded text-sm"
                         placeholder={`Enter ${field.name.toLowerCase()}`}
                       />
                     )}
@@ -385,7 +385,7 @@ export default function TaskDetailsDrawer() {
         {/* Dependencies */}
         <div>
           <div className="flex items-center justify-between mb-2">
-            <h3 className="text-[11px] font-medium text-gray-500 uppercase tracking-wider">
+            <h3 className="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
               Dependencies
             </h3>
             <button
@@ -397,11 +397,11 @@ export default function TaskDetailsDrawer() {
           </div>
 
           {depFormOpen && (
-            <div className="mb-2 p-2 bg-gray-50 rounded border border-gray-200 space-y-2">
+            <div className="mb-2 p-2 bg-gray-50 dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700 space-y-2">
               <select
                 value={depPredecessor}
                 onChange={(e) => setDepPredecessor(e.target.value)}
-                className="w-full px-2 py-1 border border-gray-200 rounded text-sm bg-white"
+                className="w-full px-2 py-1 border border-gray-200 dark:border-gray-600 rounded text-sm bg-white dark:bg-gray-800 dark:text-gray-100"
               >
                 <option value="">Select predecessor...</option>
                 {tasks
@@ -415,7 +415,7 @@ export default function TaskDetailsDrawer() {
               <select
                 value={depType}
                 onChange={(e) => setDepType(e.target.value as DependencyType)}
-                className="w-full px-2 py-1 border border-gray-200 rounded text-sm bg-white"
+                className="w-full px-2 py-1 border border-gray-200 dark:border-gray-600 rounded text-sm bg-white dark:bg-gray-800 dark:text-gray-100"
               >
                 {(Object.entries(DEPENDENCY_TYPE_LABELS) as [DependencyType, string][]).map(
                   ([k, v]) => (
@@ -434,7 +434,7 @@ export default function TaskDetailsDrawer() {
                 </button>
                 <button
                   onClick={() => setDepFormOpen(false)}
-                  className="px-3 py-1 bg-gray-200 text-gray-600 text-xs rounded hover:bg-gray-300"
+                  className="px-3 py-1 bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 text-xs rounded hover:bg-gray-300 dark:hover:bg-gray-600"
                 >
                   Cancel
                 </button>
@@ -450,12 +450,12 @@ export default function TaskDetailsDrawer() {
               return (
                 <div
                   key={dep.id}
-                  className="flex items-center justify-between px-2 py-1.5 bg-gray-50 rounded text-xs group"
+                  className="flex items-center justify-between px-2 py-1.5 bg-gray-50 dark:bg-gray-800 rounded text-xs group"
                 >
                   <div className="flex items-center gap-1.5 truncate">
                     <Link className="w-3 h-3 text-gray-400 flex-shrink-0" />
                     <span className="text-gray-400">{isPred ? 'to' : 'from'}</span>
-                    <span className="font-medium text-gray-700 truncate">
+                    <span className="font-medium text-gray-700 dark:text-gray-200 truncate">
                       {otherTask?.title || 'Unknown'}
                     </span>
                     <span className="text-gray-400">({dep.type})</span>
@@ -478,13 +478,13 @@ export default function TaskDetailsDrawer() {
         {/* Parent task */}
         {task.parentId && (
           <div>
-            <label className="text-[11px] font-medium text-gray-500 uppercase tracking-wider">
+            <label className="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
               Parent Task
             </label>
             <select
               value={task.parentId || ''}
               onChange={(e) => handleFieldChange('parentId', e.target.value || null)}
-              className="w-full mt-1 px-2 py-1.5 border border-gray-200 rounded text-sm bg-white"
+              className="w-full mt-1 px-2 py-1.5 border border-gray-200 dark:border-gray-600 rounded text-sm bg-white dark:bg-gray-800 dark:text-gray-100"
             >
               <option value="">None (top level)</option>
               {tasks

@@ -38,12 +38,12 @@ export default function FilterPanel({ onClose }: FilterPanelProps) {
     (filters.searchText ? 1 : 0);
 
   return (
-    <div className="bg-white border-b border-gray-200 px-4 py-3">
+    <div className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 px-4 py-3">
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
-          <span className="text-sm font-semibold text-gray-700">Filters</span>
+          <span className="text-sm font-semibold text-gray-700 dark:text-gray-200">Filters</span>
           {activeCount > 0 && (
-            <span className="px-1.5 py-0.5 bg-blue-100 text-blue-600 text-[10px] rounded-full font-medium">
+            <span className="px-1.5 py-0.5 bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 text-[10px] rounded-full font-medium">
               {activeCount}
             </span>
           )}
@@ -57,7 +57,7 @@ export default function FilterPanel({ onClose }: FilterPanelProps) {
               Clear all
             </button>
           )}
-          <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded">
+          <button onClick={onClose} className="p-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded">
             <X className="w-4 h-4 text-gray-400" />
           </button>
         </div>
@@ -66,7 +66,7 @@ export default function FilterPanel({ onClose }: FilterPanelProps) {
       <div className="flex flex-wrap gap-6">
         {/* Status filter */}
         <div>
-          <label className="text-[10px] font-medium text-gray-500 uppercase tracking-wider block mb-1">
+          <label className="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider block mb-1">
             Status
           </label>
           <div className="flex flex-wrap gap-1">
@@ -76,8 +76,8 @@ export default function FilterPanel({ onClose }: FilterPanelProps) {
                 onClick={() => toggleArrayFilter('statuses', status)}
                 className={`px-2 py-0.5 text-xs rounded transition-colors ${
                   filters.statuses.includes(status)
-                    ? 'bg-blue-100 text-blue-700 font-medium'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-400 font-medium'
+                    : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
                 }`}
               >
                 {status}
@@ -88,7 +88,7 @@ export default function FilterPanel({ onClose }: FilterPanelProps) {
 
         {/* Owner filter */}
         <div>
-          <label className="text-[10px] font-medium text-gray-500 uppercase tracking-wider block mb-1">
+          <label className="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider block mb-1">
             Owner
           </label>
           <div className="flex flex-wrap gap-1">
@@ -98,8 +98,8 @@ export default function FilterPanel({ onClose }: FilterPanelProps) {
                 onClick={() => toggleArrayFilter('owners', owner)}
                 className={`px-2 py-0.5 text-xs rounded transition-colors ${
                   filters.owners.includes(owner)
-                    ? 'bg-blue-100 text-blue-700 font-medium'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-400 font-medium'
+                    : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
                 }`}
               >
                 {owner}
@@ -110,7 +110,7 @@ export default function FilterPanel({ onClose }: FilterPanelProps) {
 
         {/* RAG filter */}
         <div>
-          <label className="text-[10px] font-medium text-gray-500 uppercase tracking-wider block mb-1">
+          <label className="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider block mb-1">
             RAG
           </label>
           <div className="flex gap-1.5">
@@ -131,7 +131,7 @@ export default function FilterPanel({ onClose }: FilterPanelProps) {
         {/* Tags filter */}
         {allTags.length > 0 && (
           <div>
-            <label className="text-[10px] font-medium text-gray-500 uppercase tracking-wider block mb-1">
+            <label className="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider block mb-1">
               Tags
             </label>
             <div className="flex flex-wrap gap-1">
@@ -141,8 +141,8 @@ export default function FilterPanel({ onClose }: FilterPanelProps) {
                   onClick={() => toggleArrayFilter('tags', tag)}
                   className={`px-2 py-0.5 text-xs rounded transition-colors ${
                     filters.tags.includes(tag)
-                      ? 'bg-blue-100 text-blue-700 font-medium'
-                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                      ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-400 font-medium'
+                      : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
                   }`}
                 >
                   {tag}

@@ -35,24 +35,24 @@ export default function AuditLogPanel({ onClose }: AuditLogPanelProps) {
   const getActionColor = (action: string) => {
     switch (action) {
       case 'create':
-        return 'text-green-600 bg-green-50';
+        return 'text-green-600 bg-green-50 dark:text-green-400 dark:bg-green-900/30';
       case 'update':
-        return 'text-blue-600 bg-blue-50';
+        return 'text-blue-600 bg-blue-50 dark:text-blue-400 dark:bg-blue-900/30';
       case 'delete':
-        return 'text-red-600 bg-red-50';
+        return 'text-red-600 bg-red-50 dark:text-red-400 dark:bg-red-900/30';
       default:
-        return 'text-gray-600 bg-gray-50';
+        return 'text-gray-600 bg-gray-50 dark:text-gray-400 dark:bg-gray-800';
     }
   };
 
   return (
-    <div className="fixed right-0 top-0 h-full w-80 bg-white border-l border-gray-200 shadow-lg z-50 flex flex-col">
-      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 bg-gray-50">
+    <div className="fixed right-0 top-0 h-full w-80 bg-white dark:bg-gray-900 border-l border-gray-200 dark:border-gray-700 shadow-lg z-50 flex flex-col">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
         <div className="flex items-center gap-2">
           <Clock className="w-4 h-4 text-gray-500" />
-          <span className="text-sm font-semibold text-gray-700">Activity Log</span>
+          <span className="text-sm font-semibold text-gray-700 dark:text-gray-200">Activity Log</span>
         </div>
-        <button onClick={onClose} className="p-1 hover:bg-gray-200 rounded">
+        <button onClick={onClose} className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded">
           <X className="w-4 h-4 text-gray-400" />
         </button>
       </div>
@@ -68,15 +68,15 @@ export default function AuditLogPanel({ onClose }: AuditLogPanelProps) {
         {sortedLog.map((event) => (
           <div
             key={event.id}
-            className="p-2 border border-gray-100 rounded-lg text-xs"
+            className="p-2 border border-gray-100 dark:border-gray-700 rounded-lg text-xs"
           >
             <div className="flex items-center gap-1.5 mb-1">
               <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${getActionColor(event.action)}`}>
                 {event.action}
               </span>
-              <span className="text-gray-500">{event.entityType}</span>
+              <span className="text-gray-500 dark:text-gray-400">{event.entityType}</span>
             </div>
-            <div className="text-gray-600">
+            <div className="text-gray-600 dark:text-gray-300">
               <span className="font-medium">{getUserName(event.actorUserId)}</span>
               {' '}
               {event.action}d a {event.entityType}

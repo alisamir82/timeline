@@ -30,15 +30,15 @@ function RAGBadge({ rag }: { rag: RAGStatus }) {
 
 function StatusBadge({ status }: { status: string }) {
   const colors: Record<string, string> = {
-    'Not Started': 'bg-gray-100 text-gray-600',
-    'In Progress': 'bg-blue-100 text-blue-700',
-    'On Hold': 'bg-yellow-100 text-yellow-700',
-    Complete: 'bg-green-100 text-green-700',
-    Cancelled: 'bg-red-100 text-red-600',
+    'Not Started': 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300',
+    'In Progress': 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400',
+    'On Hold': 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-400',
+    Complete: 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400',
+    Cancelled: 'bg-red-100 text-red-600 dark:bg-red-900/40 dark:text-red-400',
   };
   return (
     <span
-      className={`text-[10px] px-1.5 py-0.5 rounded font-medium whitespace-nowrap ${colors[status] || 'bg-gray-100 text-gray-600'}`}
+      className={`text-[10px] px-1.5 py-0.5 rounded font-medium whitespace-nowrap ${colors[status] || 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'}`}
     >
       {status}
     </span>
@@ -62,8 +62,8 @@ export default function TaskRow({ task, depth }: TaskRowProps) {
 
   return (
     <div
-      className={`flex items-center border-b border-gray-100 cursor-pointer select-none group
-        ${isSelected ? 'bg-blue-50' : isHovered ? 'bg-gray-50' : 'bg-white'}
+      className={`flex items-center border-b border-gray-100 dark:border-gray-800 cursor-pointer select-none group
+        ${isSelected ? 'bg-blue-50 dark:bg-blue-900/30' : isHovered ? 'bg-gray-50 dark:bg-gray-800' : 'bg-white dark:bg-gray-900'}
       `}
       style={{ height: ROW_HEIGHT, paddingLeft: depth * 20 + 4 }}
       onClick={() => selectTask(task.id)}

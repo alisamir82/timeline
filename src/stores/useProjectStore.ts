@@ -14,6 +14,7 @@ import type {
   RAGStatus,
   DependencyType,
   TaskType,
+  ThemeMode,
 } from '../types';
 import {
   sampleProject,
@@ -26,6 +27,7 @@ import {
 } from '../utils/sampleData';
 import { wouldCreateCycle } from '../utils/dependencies';
 import { toISODate, addDays, parseISO, differenceInCalendarDays } from '../utils/dates';
+import { createProjectFromTemplate } from '../utils/templates';
 
 // Serializable project data for save/load
 export interface ProjectData {
@@ -73,8 +75,19 @@ interface ProjectState {
   dragState: DragState | null;
   addNoteMode: boolean;
 
+  // Theme & auto-save
+  theme: ThemeMode;
+  autoSave: boolean;
+  isDirty: boolean;
+  lastSavedAt: string | null;
+
   // Actions
   setZoom: (zoom: ZoomLevel) => void;
+  setTheme: (theme: ThemeMode) => void;
+  toggleTheme: () => void;
+  setAutoSave: (on: boolean) => void;
+  markDirty: () => void;
+  markSaved: () => void;
   selectTask: (id: string | null) => void;
   setHoveredTask: (id: string | null) => void;
   setHoveredDependency: (id: string | null) => void;
@@ -128,6 +141,7 @@ interface ProjectState {
   // Multi-project
   switchProject: (index: number) => void;
   createProject: (name: string, description: string) => void;
+  createProjectFromTemplate: (name: string, description: string, templateId: string | null, startDate: Date) => void;
   deleteProject: (index: number) => void;
   updateProject: (updates: Partial<Project>) => void;
 
@@ -218,8 +232,33 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   dragState: null,
   addNoteMode: false,
 
+  // Theme & auto-save
+  theme: (localStorage.getItem('timeline-theme') as ThemeMode) || 'light',
+  autoSave: localStorage.getItem('timeline-autosave') !== 'false',
+  isDirty: false,
+  lastSavedAt: null,
+
   // Zoom
   setZoom: (zoom) => set({ zoom }),
+
+  // Theme
+  setTheme: (theme) => {
+    localStorage.setItem('timeline-theme', theme);
+    set({ theme });
+  },
+  toggleTheme: () => {
+    const newTheme = get().theme === 'light' ? 'dark' : 'light';
+    localStorage.setItem('timeline-theme', newTheme);
+    set({ theme: newTheme });
+  },
+
+  // Auto-save
+  setAutoSave: (on) => {
+    localStorage.setItem('timeline-autosave', String(on));
+    set({ autoSave: on });
+  },
+  markDirty: () => set({ isDirty: true }),
+  markSaved: () => set({ isDirty: false, lastSavedAt: new Date().toISOString() }),
 
   // Selection
   selectTask: (id) => set({ selectedTaskId: id }),
@@ -593,7 +632,15 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   createProject: (name, description) => {
     const { projects, currentUser } = get();
     const newPd = makeEmptyProjectData(name, description, currentUser.id);
-    // Carry over users from current project
+    newPd.users = [...get().users];
+    const newProjects = [...projects, newPd];
+    set({ projects: newProjects });
+    get().switchProject(newProjects.length - 1);
+  },
+
+  createProjectFromTemplate: (name, description, templateId, startDate) => {
+    const { projects, currentUser } = get();
+    const newPd = createProjectFromTemplate(templateId, name, description, startDate, currentUser.id);
     newPd.users = [...get().users];
     const newProjects = [...projects, newPd];
     set({ projects: newProjects });
@@ -683,7 +730,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     };
     const newProjects = [...projects];
     newProjects[activeProjectIndex] = updated;
-    set({ projects: newProjects });
+    set({ projects: newProjects, isDirty: true });
   },
 
   // Internal helper

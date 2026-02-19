@@ -1,5 +1,7 @@
 @import 'tailwindcss';
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 * {
   box-sizing: border-box;
 }
@@ -20,12 +22,21 @@ body {
 ::-webkit-scrollbar-track {
   background: #f9fafb;
 }
+.dark ::-webkit-scrollbar-track {
+  background: #1f2937;
+}
 ::-webkit-scrollbar-thumb {
   background: #d1d5db;
   border-radius: 4px;
 }
+.dark ::-webkit-scrollbar-thumb {
+  background: #4b5563;
+}
 ::-webkit-scrollbar-thumb:hover {
   background: #9ca3af;
+}
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: #6b7280;
 }
 
 /* Range input styling */
@@ -36,6 +47,9 @@ input[type='range'] {
   background: #e5e7eb;
   border-radius: 2px;
   outline: none;
+}
+.dark input[type='range'] {
+  background: #4b5563;
 }
 input[type='range']::-webkit-slider-thumb {
   -webkit-appearance: none;
