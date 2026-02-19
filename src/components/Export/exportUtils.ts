@@ -31,8 +31,25 @@ export interface ExportOptions {
 
 function getTimelineBounds(opts: ExportOptions) {
   const { project, tasks, zoom } = opts;
-  const timelineStart = addDays(parseISO(project.startDate), -7);
-  const timelineEnd = addDays(parseISO(project.endDate), 14);
+
+  // Compute tight bounds from actual task dates instead of full project range
+  let minDate: Date | null = null;
+  let maxDate: Date | null = null;
+  for (const task of tasks) {
+    const start = parseISO(task.startDate);
+    const end = parseISO(task.endDate);
+    if (!minDate || start < minDate) minDate = start;
+    if (!maxDate || end > maxDate) maxDate = end;
+  }
+
+  // Fall back to project dates if no tasks
+  const effectiveStart = minDate || parseISO(project.startDate);
+  const effectiveEnd = maxDate || parseISO(project.endDate);
+
+  // Add reasonable margin: 7 days before, 14 days after
+  const timelineStart = addDays(effectiveStart, -7);
+  const timelineEnd = addDays(effectiveEnd, 14);
+
   const units = getTimelineUnits(timelineStart, timelineEnd, zoom);
   const colWidth = COLUMN_WIDTHS[zoom];
   const gridWidth = units.length * colWidth;
