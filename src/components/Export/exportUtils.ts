@@ -1,41 +1,430 @@
-import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
-import type { Task, CustomFieldDefinition, CustomFieldValue } from '../../types';
+import type { Task, Dependency, CustomFieldDefinition, CustomFieldValue, ZoomLevel, Project } from '../../types';
+import { RAG_COLORS } from '../../types';
+import {
+  parseISO,
+  addDays,
+  format,
+  isWeekend,
+  getTimelineUnits,
+  formatUnitLabel,
+  formatHeaderLabel,
+  COLUMN_WIDTHS,
+  dateToPixelOffset,
+} from '../../utils/dates';
+import { getDependencyPoints } from '../../utils/dependencies';
 
-export async function exportPNG(element: HTMLElement): Promise<void> {
-  const canvas = await html2canvas(element, {
-    scale: 2,
-    useCORS: true,
-    backgroundColor: '#ffffff',
+const ROW_HEIGHT = 32;
+const HEADER_HEIGHT = 50;
+const TITLE_HEIGHT = 44;
+const TASK_LABEL_WIDTH = 200;
+const PADDING = 20;
+
+export interface ExportOptions {
+  project: Project;
+  tasks: Task[];
+  dependencies: Dependency[];
+  zoom: ZoomLevel;
+}
+
+function getTimelineBounds(opts: ExportOptions) {
+  const { project, tasks, zoom } = opts;
+  const timelineStart = addDays(parseISO(project.startDate), -7);
+  const timelineEnd = addDays(parseISO(project.endDate), 14);
+  const units = getTimelineUnits(timelineStart, timelineEnd, zoom);
+  const colWidth = COLUMN_WIDTHS[zoom];
+  const gridWidth = units.length * colWidth;
+  const totalWidth = TASK_LABEL_WIDTH + gridWidth + PADDING * 2;
+  const totalHeight = TITLE_HEIGHT + HEADER_HEIGHT + tasks.length * ROW_HEIGHT + PADDING * 2;
+  return { timelineStart, timelineEnd, units, colWidth, gridWidth, totalWidth, totalHeight };
+}
+
+function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
+}
+
+const FONT = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
+
+function renderToCanvas(opts: ExportOptions): HTMLCanvasElement {
+  const { project, tasks, dependencies, zoom } = opts;
+  const { timelineStart, units, colWidth, gridWidth, totalWidth, totalHeight } = getTimelineBounds(opts);
+
+  const scale = 2;
+  const canvas = document.createElement('canvas');
+  canvas.width = totalWidth * scale;
+  canvas.height = totalHeight * scale;
+  const ctx = canvas.getContext('2d')!;
+  ctx.scale(scale, scale);
+
+  // White background
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, totalWidth, totalHeight);
+
+  const ox = PADDING;
+  const oy = PADDING;
+  const gridLeft = ox + TASK_LABEL_WIDTH;
+  const headerTop = oy + TITLE_HEIGHT;
+  const bodyTop = headerTop + HEADER_HEIGHT;
+
+  // ===== Project title =====
+  ctx.fillStyle = '#111827';
+  ctx.font = `bold 16px ${FONT}`;
+  ctx.fillText(project.name, ox, oy + 18);
+
+  ctx.fillStyle = '#6b7280';
+  ctx.font = `11px ${FONT}`;
+  const dateRange = `${format(parseISO(project.startDate), 'MMM d, yyyy')} – ${format(parseISO(project.endDate), 'MMM d, yyyy')}`;
+  ctx.fillText(dateRange, ox, oy + 34);
+
+  ctx.textAlign = 'right';
+  ctx.fillText(`Exported ${format(new Date(), 'MMM d, yyyy HH:mm')}`, ox + totalWidth - PADDING * 2, oy + 34);
+  ctx.textAlign = 'left';
+
+  // ===== Header background =====
+  ctx.fillStyle = '#f9fafb';
+  ctx.fillRect(ox, headerTop, totalWidth - PADDING * 2, HEADER_HEIGHT);
+
+  // ===== Grouped header (top half) =====
+  const groups: { label: string; count: number }[] = [];
+  let lastLabel = '';
+  for (const unit of units) {
+    const label = formatHeaderLabel(unit, zoom);
+    if (label === lastLabel && groups.length > 0) {
+      groups[groups.length - 1].count++;
+    } else {
+      groups.push({ label, count: 1 });
+      lastLabel = label;
+    }
+  }
+
+  ctx.font = `bold 10px ${FONT}`;
+  ctx.fillStyle = '#374151';
+  ctx.textAlign = 'center';
+  let gx = gridLeft;
+  for (const g of groups) {
+    const w = g.count * colWidth;
+    ctx.fillText(g.label, gx + w / 2, headerTop + 18);
+    ctx.strokeStyle = '#e5e7eb';
+    ctx.lineWidth = 0.5;
+    ctx.beginPath();
+    ctx.moveTo(gx + w, headerTop);
+    ctx.lineTo(gx + w, headerTop + HEADER_HEIGHT / 2);
+    ctx.stroke();
+    gx += w;
+  }
+
+  // Mid-header divider
+  ctx.strokeStyle = '#e5e7eb';
+  ctx.lineWidth = 0.5;
+  ctx.beginPath();
+  ctx.moveTo(gridLeft, headerTop + HEADER_HEIGHT / 2);
+  ctx.lineTo(gridLeft + gridWidth, headerTop + HEADER_HEIGHT / 2);
+  ctx.stroke();
+
+  // ===== Unit labels (bottom half) =====
+  ctx.font = `9px ${FONT}`;
+  ctx.fillStyle = '#6b7280';
+  units.forEach((unit, i) => {
+    const x = gridLeft + i * colWidth;
+    ctx.fillText(formatUnitLabel(unit, zoom), x + colWidth / 2, headerTop + HEADER_HEIGHT / 2 + 18);
+
+    ctx.strokeStyle = '#f3f4f6';
+    ctx.lineWidth = 0.5;
+    ctx.beginPath();
+    ctx.moveTo(x, headerTop + HEADER_HEIGHT / 2);
+    ctx.lineTo(x, headerTop + HEADER_HEIGHT);
+    ctx.stroke();
   });
+  ctx.textAlign = 'left';
+
+  // Header bottom border
+  ctx.strokeStyle = '#d1d5db';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(ox, headerTop + HEADER_HEIGHT);
+  ctx.lineTo(ox + totalWidth - PADDING * 2, headerTop + HEADER_HEIGHT);
+  ctx.stroke();
+
+  // Task column header
+  ctx.fillStyle = '#6b7280';
+  ctx.font = `bold 9px ${FONT}`;
+  ctx.fillText('TASK', ox + 8, headerTop + 18);
+
+  // ===== Grid background =====
+  units.forEach((unit, i) => {
+    const x = gridLeft + i * colWidth;
+    if (zoom === 'day' && isWeekend(unit)) {
+      ctx.fillStyle = '#f9fafb';
+      ctx.fillRect(x, bodyTop, colWidth, tasks.length * ROW_HEIGHT);
+    }
+    ctx.strokeStyle = '#f3f4f6';
+    ctx.lineWidth = 0.5;
+    ctx.beginPath();
+    ctx.moveTo(x, bodyTop);
+    ctx.lineTo(x, bodyTop + tasks.length * ROW_HEIGHT);
+    ctx.stroke();
+  });
+
+  // ===== Today line =====
+  const todayX = gridLeft + dateToPixelOffset(new Date(), timelineStart, zoom);
+  if (todayX > gridLeft && todayX < gridLeft + gridWidth) {
+    ctx.strokeStyle = '#ef4444';
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([4, 2]);
+    ctx.beginPath();
+    ctx.moveTo(todayX, headerTop);
+    ctx.lineTo(todayX, bodyTop + tasks.length * ROW_HEIGHT);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = '#ef4444';
+    ctx.font = `bold 8px ${FONT}`;
+    ctx.fillText('Today', todayX + 3, headerTop + 10);
+  }
+
+  // ===== Rows: labels + bars =====
+  tasks.forEach((task, i) => {
+    const rowY = bodyTop + i * ROW_HEIGHT;
+
+    // Row divider
+    ctx.strokeStyle = '#f3f4f6';
+    ctx.lineWidth = 0.5;
+    ctx.beginPath();
+    ctx.moveTo(ox, rowY + ROW_HEIGHT);
+    ctx.lineTo(ox + totalWidth - PADDING * 2, rowY + ROW_HEIGHT);
+    ctx.stroke();
+
+    // Alternating row bg
+    if (i % 2 === 1) {
+      ctx.fillStyle = '#fafbfc';
+      ctx.fillRect(ox, rowY, TASK_LABEL_WIDTH, ROW_HEIGHT);
+    }
+
+    const isSummary = task.type === 'summary';
+    const isMilestone = task.type === 'milestone';
+    const indent = task.parentId ? 16 : 0;
+
+    // RAG dot
+    if (task.rag !== 'none') {
+      ctx.fillStyle = RAG_COLORS[task.rag];
+      ctx.beginPath();
+      ctx.arc(ox + 8 + indent, rowY + ROW_HEIGHT / 2, 4, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // Task label
+    ctx.fillStyle = '#1f2937';
+    ctx.font = isSummary ? `bold 10px ${FONT}` : `10px ${FONT}`;
+    const labelX = ox + (task.rag !== 'none' ? 18 : 8) + indent;
+    const maxLabelWidth = TASK_LABEL_WIDTH - (labelX - ox) - 8;
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(labelX, rowY, maxLabelWidth, ROW_HEIGHT);
+    ctx.clip();
+    ctx.fillText(task.title, labelX, rowY + ROW_HEIGHT / 2 + 3);
+    ctx.restore();
+
+    // ---- Bar ----
+    const taskStart = parseISO(task.startDate);
+    const taskEnd = parseISO(task.endDate);
+    const barLeft = gridLeft + dateToPixelOffset(taskStart, timelineStart, zoom);
+    const barRight = gridLeft + dateToPixelOffset(taskEnd, timelineStart, zoom);
+    const barWidth = Math.max(barRight - barLeft, isMilestone ? 0 : 16);
+    const barY = rowY + 6;
+    const barH = ROW_HEIGHT - 12;
+
+    if (isMilestone) {
+      const cx = barLeft;
+      const cy = rowY + ROW_HEIGHT / 2;
+      const s = 8;
+      ctx.fillStyle = task.color;
+      ctx.beginPath();
+      ctx.moveTo(cx, cy - s);
+      ctx.lineTo(cx + s, cy);
+      ctx.lineTo(cx, cy + s);
+      ctx.lineTo(cx - s, cy);
+      ctx.closePath();
+      ctx.fill();
+    } else if (isSummary) {
+      const sy = rowY + ROW_HEIGHT / 2 - 3;
+      ctx.fillStyle = task.color;
+      ctx.globalAlpha = 0.7;
+      ctx.fillRect(barLeft, sy, barWidth, 6);
+      ctx.globalAlpha = 0.9;
+      // Left bracket
+      ctx.beginPath();
+      ctx.moveTo(barLeft, sy - 2);
+      ctx.lineTo(barLeft + 5, sy - 2);
+      ctx.lineTo(barLeft, sy + 8);
+      ctx.closePath();
+      ctx.fill();
+      // Right bracket
+      ctx.beginPath();
+      ctx.moveTo(barLeft + barWidth, sy - 2);
+      ctx.lineTo(barLeft + barWidth - 5, sy - 2);
+      ctx.lineTo(barLeft + barWidth, sy + 8);
+      ctx.closePath();
+      ctx.fill();
+      ctx.globalAlpha = 1;
+    } else {
+      // Background
+      ctx.fillStyle = task.color;
+      ctx.globalAlpha = 0.2;
+      roundRect(ctx, barLeft, barY, barWidth, barH, 3);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+
+      // Progress
+      if (task.percentComplete > 0) {
+        ctx.fillStyle = task.color;
+        ctx.globalAlpha = 0.5;
+        roundRect(ctx, barLeft, barY, (barWidth * task.percentComplete) / 100, barH, 3);
+        ctx.fill();
+        ctx.globalAlpha = 1;
+      }
+
+      // Border
+      ctx.strokeStyle = task.color;
+      ctx.globalAlpha = 0.4;
+      ctx.lineWidth = 1;
+      roundRect(ctx, barLeft, barY, barWidth, barH, 3);
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+
+      // Bar label
+      if (barWidth > 50) {
+        ctx.fillStyle = '#1f2937';
+        ctx.font = `9px ${FONT}`;
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(barLeft, barY, barWidth, barH);
+        ctx.clip();
+        ctx.fillText(task.title, barLeft + 5, barY + barH / 2 + 3);
+        ctx.restore();
+      }
+    }
+  });
+
+  // ===== Dependency lines =====
+  const taskIndexMap = new Map<string, number>();
+  tasks.forEach((t, i) => taskIndexMap.set(t.id, i));
+  const taskMap = new Map<string, Task>();
+  tasks.forEach((t) => taskMap.set(t.id, t));
+
+  ctx.setLineDash([4, 3]);
+  ctx.lineWidth = 1.2;
+
+  for (const dep of dependencies) {
+    const pred = taskMap.get(dep.predecessorTaskId);
+    const succ = taskMap.get(dep.successorTaskId);
+    if (!pred || !succ) continue;
+    const predIdx = taskIndexMap.get(dep.predecessorTaskId);
+    const succIdx = taskIndexMap.get(dep.successorTaskId);
+    if (predIdx === undefined || succIdx === undefined) continue;
+
+    const barH = ROW_HEIGHT - 12;
+    const predRect = {
+      x: gridLeft + dateToPixelOffset(parseISO(pred.startDate), timelineStart, zoom),
+      y: bodyTop + predIdx * ROW_HEIGHT + 6,
+      width: Math.max(dateToPixelOffset(parseISO(pred.endDate), timelineStart, zoom) - dateToPixelOffset(parseISO(pred.startDate), timelineStart, zoom), 16),
+      height: barH,
+    };
+    const succRect = {
+      x: gridLeft + dateToPixelOffset(parseISO(succ.startDate), timelineStart, zoom),
+      y: bodyTop + succIdx * ROW_HEIGHT + 6,
+      width: Math.max(dateToPixelOffset(parseISO(succ.endDate), timelineStart, zoom) - dateToPixelOffset(parseISO(succ.startDate), timelineStart, zoom), 16),
+      height: barH,
+    };
+
+    const pts = getDependencyPoints(dep.type, predRect, succRect);
+    ctx.strokeStyle = '#94a3b8';
+    ctx.beginPath();
+
+    const midX = (pts.x1 + pts.x2) / 2;
+    if (dep.type === 'FS' || dep.type === 'SF') {
+      if (pts.x2 > pts.x1 + 24) {
+        ctx.moveTo(pts.x1, pts.y1);
+        ctx.lineTo(midX, pts.y1);
+        ctx.lineTo(midX, pts.y2);
+        ctx.lineTo(pts.x2, pts.y2);
+      } else {
+        const midY = (pts.y1 + pts.y2) / 2;
+        ctx.moveTo(pts.x1, pts.y1);
+        ctx.lineTo(pts.x1 + 12, pts.y1);
+        ctx.lineTo(pts.x1 + 12, midY);
+        ctx.lineTo(pts.x2 - 12, midY);
+        ctx.lineTo(pts.x2 - 12, pts.y2);
+        ctx.lineTo(pts.x2, pts.y2);
+      }
+    } else {
+      const leftX = Math.min(pts.x1, pts.x2) - 12;
+      ctx.moveTo(pts.x1, pts.y1);
+      ctx.lineTo(leftX, pts.y1);
+      ctx.lineTo(leftX, pts.y2);
+      ctx.lineTo(pts.x2, pts.y2);
+    }
+    ctx.stroke();
+
+    // Arrowhead
+    ctx.setLineDash([]);
+    ctx.fillStyle = '#94a3b8';
+    ctx.beginPath();
+    ctx.moveTo(pts.x2, pts.y2);
+    ctx.lineTo(pts.x2 - 6, pts.y2 - 3);
+    ctx.lineTo(pts.x2 - 6, pts.y2 + 3);
+    ctx.closePath();
+    ctx.fill();
+    ctx.setLineDash([4, 3]);
+  }
+  ctx.setLineDash([]);
+
+  // ===== Outer border =====
+  ctx.strokeStyle = '#e5e7eb';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(ox, headerTop, totalWidth - PADDING * 2, HEADER_HEIGHT + tasks.length * ROW_HEIGHT);
+
+  // Vertical divider between labels and grid
+  ctx.strokeStyle = '#d1d5db';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(gridLeft, headerTop);
+  ctx.lineTo(gridLeft, bodyTop + tasks.length * ROW_HEIGHT);
+  ctx.stroke();
+
+  return canvas;
+}
+
+export function exportPNG(opts: ExportOptions): void {
+  const canvas = renderToCanvas(opts);
   const link = document.createElement('a');
-  link.download = `timeline-${new Date().toISOString().slice(0, 10)}.png`;
+  link.download = `${opts.project.name.replace(/\s+/g, '-').toLowerCase()}-timeline-${format(new Date(), 'yyyy-MM-dd')}.png`;
   link.href = canvas.toDataURL('image/png');
   link.click();
 }
 
-export async function exportPDF(element: HTMLElement): Promise<void> {
-  const canvas = await html2canvas(element, {
-    scale: 2,
-    useCORS: true,
-    backgroundColor: '#ffffff',
-  });
-
+export function exportPDF(opts: ExportOptions): void {
+  const canvas = renderToCanvas(opts);
   const imgData = canvas.toDataURL('image/png');
-  const imgWidth = canvas.width;
-  const imgHeight = canvas.height;
-
-  const pdfWidth = imgWidth * 0.75;
-  const pdfHeight = imgHeight * 0.75;
+  const w = canvas.width / 2;
+  const h = canvas.height / 2;
 
   const pdf = new jsPDF({
-    orientation: pdfWidth > pdfHeight ? 'landscape' : 'portrait',
+    orientation: 'landscape',
     unit: 'pt',
-    format: [pdfWidth, pdfHeight],
+    format: [w, h],
   });
 
-  pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-  pdf.save(`timeline-${new Date().toISOString().slice(0, 10)}.pdf`);
+  pdf.addImage(imgData, 'PNG', 0, 0, w, h);
+  pdf.save(`${opts.project.name.replace(/\s+/g, '-').toLowerCase()}-timeline-${format(new Date(), 'yyyy-MM-dd')}.pdf`);
 }
 
 export function exportCSV(
@@ -96,7 +485,7 @@ export function exportCSV(
 
   const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
   const link = document.createElement('a');
-  link.download = `timeline-${new Date().toISOString().slice(0, 10)}.csv`;
+  link.download = `timeline-${format(new Date(), 'yyyy-MM-dd')}.csv`;
   link.href = URL.createObjectURL(blob);
   link.click();
   URL.revokeObjectURL(link.href);

@@ -1,4 +1,5 @@
 import React, { useState, useRef, useCallback } from 'react';
+// useRef still needed for fileInputRef
 import LeftPanel from './components/LeftPanel/LeftPanel';
 import TimelineGrid from './components/Timeline/TimelineGrid';
 import TaskDetailsDrawer from './components/TaskDetails/TaskDetailsDrawer';
@@ -11,31 +12,29 @@ import { exportPNG, exportPDF, exportCSV } from './components/Export/exportUtils
 import { LEFT_PANEL_DEFAULT_WIDTH } from './utils/dates';
 
 export default function App() {
-  const { tasks, customFields, customFieldValues, showTaskDetails, currentUser, exportAllData, importAllData } =
+  const { project, tasks, dependencies, customFields, customFieldValues, zoom, showTaskDetails, currentUser, exportAllData, importAllData } =
     useProjectStore();
   const [leftPanelWidth, setLeftPanelWidth] = useState(LEFT_PANEL_DEFAULT_WIDTH);
   const [scrollTop, setScrollTop] = useState(0);
   const [showFilters, setShowFilters] = useState(false);
   const [showAuditLog, setShowAuditLog] = useState(false);
   const [showProjectModal, setShowProjectModal] = useState(false);
-  const timelineRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleExport = useCallback(
-    async (format: 'png' | 'pdf' | 'csv') => {
-      if (format === 'csv') {
+    (fmt: 'png' | 'pdf' | 'csv') => {
+      if (fmt === 'csv') {
         exportCSV(tasks, customFields, customFieldValues);
         return;
       }
-      const el = timelineRef.current;
-      if (!el) return;
-      if (format === 'png') {
-        await exportPNG(el);
+      const opts = { project, tasks, dependencies, zoom };
+      if (fmt === 'png') {
+        exportPNG(opts);
       } else {
-        await exportPDF(el);
+        exportPDF(opts);
       }
     },
-    [tasks, customFields, customFieldValues]
+    [project, tasks, dependencies, zoom, customFields, customFieldValues]
   );
 
   const handleSave = useCallback(() => {
@@ -97,7 +96,7 @@ export default function App() {
       {showFilters && <FilterPanel onClose={() => setShowFilters(false)} />}
 
       {/* Main content */}
-      <div ref={timelineRef} className="flex-1 flex overflow-hidden">
+      <div className="flex-1 flex overflow-hidden">
         {/* Left panel: task list */}
         <LeftPanel
           width={leftPanelWidth}
