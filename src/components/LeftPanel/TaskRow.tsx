@@ -18,7 +18,7 @@ interface TaskRowProps {
 }
 
 function RAGBadge({ rag }: { rag: RAGStatus }) {
-  if (rag === 'none') return <span className="w-3 h-3 rounded-full bg-gray-200 inline-block" />;
+  if (rag === 'none') return <span className="w-3 h-3 rounded-full bg-gray-200 dark:bg-gray-600 inline-block" />;
   return (
     <span
       className="w-3 h-3 rounded-full inline-block"
@@ -72,7 +72,7 @@ export default function TaskRow({ task, depth }: TaskRowProps) {
       onMouseLeave={() => setHoveredTask(null)}
     >
       {/* Drag handle */}
-      <GripVertical className="w-3 h-3 text-gray-300 opacity-0 group-hover:opacity-100 mr-1 flex-shrink-0" />
+      <GripVertical className="w-3 h-3 text-gray-300 dark:text-gray-600 opacity-0 group-hover:opacity-100 mr-1 flex-shrink-0" />
 
       {/* Expand/collapse for summary */}
       {isSummary ? (
@@ -81,12 +81,12 @@ export default function TaskRow({ task, depth }: TaskRowProps) {
             e.stopPropagation();
             toggleCollapse(task.id);
           }}
-          className="p-0.5 hover:bg-gray-200 rounded flex-shrink-0"
+          className="p-0.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded flex-shrink-0"
         >
           {task.collapsed ? (
-            <ChevronRight className="w-3.5 h-3.5 text-gray-500" />
+            <ChevronRight className="w-3.5 h-3.5 text-gray-500 dark:text-gray-400" />
           ) : (
-            <ChevronDown className="w-3.5 h-3.5 text-gray-500" />
+            <ChevronDown className="w-3.5 h-3.5 text-gray-500 dark:text-gray-400" />
           )}
         </button>
       ) : (
@@ -109,7 +109,7 @@ export default function TaskRow({ task, depth }: TaskRowProps) {
 
       {/* Title */}
       <span
-        className={`flex-1 text-sm truncate mr-2 ${isSummary ? 'font-semibold' : ''}`}
+        className={`flex-1 text-sm truncate mr-2 text-gray-800 dark:text-gray-100 ${isSummary ? 'font-semibold' : ''}`}
         title={task.title}
       >
         {task.title}
@@ -117,11 +117,11 @@ export default function TaskRow({ task, depth }: TaskRowProps) {
 
       {/* Notes indicator */}
       {task.notes && (
-        <MessageSquare className="w-3 h-3 text-gray-400 mr-1 flex-shrink-0" />
+        <MessageSquare className="w-3 h-3 text-gray-400 dark:text-gray-500 mr-1 flex-shrink-0" />
       )}
 
       {/* Owner */}
-      <span className="w-20 text-xs text-gray-500 truncate mr-2 flex-shrink-0" title={task.ownerText}>
+      <span className="w-20 text-xs text-gray-500 dark:text-gray-400 truncate mr-2 flex-shrink-0" title={task.ownerText}>
         {task.ownerText}
       </span>
 
@@ -136,7 +136,7 @@ export default function TaskRow({ task, depth }: TaskRowProps) {
       </span>
 
       {/* % Complete */}
-      <span className="w-10 text-[10px] text-gray-400 text-right flex-shrink-0 pr-2">
+      <span className="w-10 text-[10px] text-gray-400 dark:text-gray-500 text-right flex-shrink-0 pr-2">
         {task.percentComplete > 0 ? `${task.percentComplete}%` : ''}
       </span>
     </div>

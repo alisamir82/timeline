@@ -34,7 +34,7 @@ function TagsEditor({ task, onUpdate }: { task: Task; onUpdate: (tags: string[])
             {tag}
             <button
               onClick={() => onUpdate(task.tags.filter((_, idx) => idx !== i))}
-              className="text-gray-400 hover:text-red-500"
+              className="text-gray-400 dark:text-gray-500 hover:text-red-500"
             >
               <X className="w-2.5 h-2.5" />
             </button>
@@ -139,14 +139,14 @@ export default function TaskDetailsDrawer() {
                 closeTaskDetails();
               }
             }}
-            className="p-1.5 hover:bg-red-50 rounded text-gray-400 hover:text-red-500"
+            className="p-1.5 hover:bg-red-50 dark:hover:bg-red-900/30 rounded text-gray-400 dark:text-gray-500 hover:text-red-500"
             title="Delete task"
           >
             <Trash2 className="w-4 h-4" />
           </button>
           <button
             onClick={closeTaskDetails}
-            className="p-1.5 hover:bg-gray-200 rounded text-gray-400"
+            className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded text-gray-400 dark:text-gray-500"
           >
             <X className="w-4 h-4" />
           </button>
@@ -211,7 +211,7 @@ export default function TaskDetailsDrawer() {
         </div>
 
         {/* Duration display */}
-        <div className="text-xs text-gray-400">
+        <div className="text-xs text-gray-400 dark:text-gray-500">
           Duration: {task.duration} day{task.duration !== 1 ? 's' : ''}
         </div>
 
@@ -267,7 +267,7 @@ export default function TaskDetailsDrawer() {
                 key={rag}
                 onClick={() => handleFieldChange('rag', rag)}
                 className={`w-8 h-8 rounded-full border-2 flex items-center justify-center text-[10px] font-bold transition-all ${
-                  task.rag === rag ? 'border-gray-800 scale-110' : 'border-transparent'
+                  task.rag === rag ? 'border-gray-800 dark:border-gray-200 scale-110' : 'border-transparent'
                 }`}
                 style={{ backgroundColor: RAG_COLORS[rag] }}
                 title={rag === 'none' ? 'None' : rag.toUpperCase()}
@@ -305,7 +305,7 @@ export default function TaskDetailsDrawer() {
                 key={c}
                 onClick={() => handleFieldChange('color', c)}
                 className={`w-6 h-6 rounded border-2 transition-all ${
-                  task.color === c ? 'border-gray-800 scale-110' : 'border-transparent'
+                  task.color === c ? 'border-gray-800 dark:border-gray-200 scale-110' : 'border-transparent'
                 }`}
                 style={{ backgroundColor: c }}
               />
@@ -390,7 +390,7 @@ export default function TaskDetailsDrawer() {
             </h3>
             <button
               onClick={() => setDepFormOpen(!depFormOpen)}
-              className="text-xs text-blue-600 hover:text-blue-700"
+              className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300"
             >
               + Add
             </button>
@@ -453,16 +453,16 @@ export default function TaskDetailsDrawer() {
                   className="flex items-center justify-between px-2 py-1.5 bg-gray-50 dark:bg-gray-800 rounded text-xs group"
                 >
                   <div className="flex items-center gap-1.5 truncate">
-                    <Link className="w-3 h-3 text-gray-400 flex-shrink-0" />
-                    <span className="text-gray-400">{isPred ? 'to' : 'from'}</span>
+                    <Link className="w-3 h-3 text-gray-400 dark:text-gray-500 flex-shrink-0" />
+                    <span className="text-gray-400 dark:text-gray-500">{isPred ? 'to' : 'from'}</span>
                     <span className="font-medium text-gray-700 dark:text-gray-200 truncate">
                       {otherTask?.title || 'Unknown'}
                     </span>
-                    <span className="text-gray-400">({dep.type})</span>
+                    <span className="text-gray-400 dark:text-gray-500">({dep.type})</span>
                   </div>
                   <button
                     onClick={() => deleteDependency(dep.id)}
-                    className="opacity-0 group-hover:opacity-100 p-0.5 hover:text-red-500 text-gray-400"
+                    className="opacity-0 group-hover:opacity-100 p-0.5 hover:text-red-500 text-gray-400 dark:text-gray-500"
                   >
                     <X className="w-3 h-3" />
                   </button>
@@ -470,7 +470,7 @@ export default function TaskDetailsDrawer() {
               );
             })}
             {taskDeps.length === 0 && (
-              <p className="text-xs text-gray-400">No dependencies</p>
+              <p className="text-xs text-gray-400 dark:text-gray-500">No dependencies</p>
             )}
           </div>
         </div>

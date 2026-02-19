@@ -228,7 +228,7 @@ export default function ProjectModal({ onClose, onProjectCreated }: ProjectModal
                         )}
                         <div>
                           <div className="text-sm font-medium text-gray-800 dark:text-gray-100">{pd.project.name}</div>
-                          <div className="text-xs text-gray-400">
+                          <div className="text-xs text-gray-400 dark:text-gray-500">
                             {pd.tasks.length} tasks &middot; {pd.project.startDate}
                           </div>
                         </div>
@@ -301,7 +301,7 @@ export default function ProjectModal({ onClose, onProjectCreated }: ProjectModal
                         </div>
                         <div>
                           <div className="text-sm font-medium text-gray-800 dark:text-gray-100">Blank Project</div>
-                          <div className="text-[10px] text-gray-400">Start from scratch</div>
+                          <div className="text-[10px] text-gray-400 dark:text-gray-500">Start from scratch</div>
                         </div>
                       </button>
 
@@ -321,7 +321,7 @@ export default function ProjectModal({ onClose, onProjectCreated }: ProjectModal
                           </div>
                           <div className="min-w-0">
                             <div className="text-sm font-medium text-gray-800 dark:text-gray-100 truncate">{tmpl.name}</div>
-                            <div className="text-[10px] text-gray-400 truncate">{tmpl.tasks.length} tasks</div>
+                            <div className="text-[10px] text-gray-400 dark:text-gray-500 truncate">{tmpl.tasks.length} tasks</div>
                           </div>
                         </button>
                       ))}
@@ -360,7 +360,7 @@ export default function ProjectModal({ onClose, onProjectCreated }: ProjectModal
                         </div>
                         <div>
                           <div className="text-sm font-medium text-gray-800 dark:text-gray-100">{u.name}</div>
-                          <div className="text-xs text-gray-400">{u.email} &middot; {u.role}</div>
+                          <div className="text-xs text-gray-400 dark:text-gray-500">{u.email} &middot; {u.role}</div>
                         </div>
                       </div>
                       <button
@@ -427,7 +427,7 @@ export default function ProjectModal({ onClose, onProjectCreated }: ProjectModal
                   Tags in Use ({allTags.length})
                 </h3>
                 {allTags.length === 0 ? (
-                  <p className="text-sm text-gray-400">No tags yet. Add tags to tasks via the task details panel.</p>
+                  <p className="text-sm text-gray-400 dark:text-gray-500">No tags yet. Add tags to tasks via the task details panel.</p>
                 ) : (
                   <div className="flex flex-wrap gap-2">
                     {allTags.map((tag) => {
@@ -438,7 +438,7 @@ export default function ProjectModal({ onClose, onProjectCreated }: ProjectModal
                           className="flex items-center gap-1.5 px-2.5 py-1 bg-gray-100 dark:bg-gray-800 rounded-full group"
                         >
                           <span className="text-sm text-gray-700 dark:text-gray-300">{tag}</span>
-                          <span className="text-[10px] text-gray-400">({count})</span>
+                          <span className="text-[10px] text-gray-400 dark:text-gray-500">({count})</span>
                           <button
                             onClick={() => {
                               if (confirm(`Remove tag "${tag}" from all ${count} task(s)?`)) {

@@ -23,7 +23,8 @@ interface TimelineGridProps {
 }
 
 export default function TimelineGrid({ scrollTop, onScroll }: TimelineGridProps) {
-  const { project, zoom, getVisibleTasks, addNoteMode, setAddNoteMode } = useProjectStore();
+  const { project, zoom, getVisibleTasks, addNoteMode, setAddNoteMode, theme } = useProjectStore();
+  const isDark = theme === 'dark';
   const containerRef = useRef<HTMLDivElement>(null);
   const visibleTasks = getVisibleTasks();
 
@@ -92,14 +93,14 @@ export default function TimelineGrid({ scrollTop, onScroll }: TimelineGridProps)
               return (
                 <g key={i}>
                   {weekend && (
-                    <rect x={x} y={0} width={colWidth} height={totalHeight} fill="#f9fafb" />
+                    <rect x={x} y={0} width={colWidth} height={totalHeight} fill={isDark ? '#111827' : '#f9fafb'} />
                   )}
                   <line
                     x1={x}
                     y1={0}
                     x2={x}
                     y2={totalHeight}
-                    stroke="#f3f4f6"
+                    stroke={isDark ? '#1f2937' : '#f3f4f6'}
                     strokeWidth={1}
                   />
                 </g>
@@ -114,7 +115,7 @@ export default function TimelineGrid({ scrollTop, onScroll }: TimelineGridProps)
                 y1={(i + 1) * ROW_HEIGHT}
                 x2={totalWidth}
                 y2={(i + 1) * ROW_HEIGHT}
-                stroke="#f3f4f6"
+                stroke={isDark ? '#1f2937' : '#f3f4f6'}
                 strokeWidth={1}
               />
             ))}
@@ -137,7 +138,7 @@ export default function TimelineGrid({ scrollTop, onScroll }: TimelineGridProps)
                 markerHeight={6}
                 orient="auto-start-reverse"
               >
-                <path d="M 0 0 L 10 5 L 0 10 z" fill="#94a3b8" />
+                <path d="M 0 0 L 10 5 L 0 10 z" fill={isDark ? '#cbd5e1' : '#94a3b8'} />
               </marker>
               <marker
                 id="arrow-active"

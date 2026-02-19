@@ -52,13 +52,13 @@ export default function FilterPanel({ onClose }: FilterPanelProps) {
           {activeCount > 0 && (
             <button
               onClick={clearFilters}
-              className="text-xs text-blue-600 hover:text-blue-700"
+              className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300"
             >
               Clear all
             </button>
           )}
           <button onClick={onClose} className="p-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded">
-            <X className="w-4 h-4 text-gray-400" />
+            <X className="w-4 h-4 text-gray-400 dark:text-gray-500" />
           </button>
         </div>
       </div>
@@ -119,7 +119,7 @@ export default function FilterPanel({ onClose }: FilterPanelProps) {
                 key={rag}
                 onClick={() => toggleRagFilter(rag)}
                 className={`w-6 h-6 rounded-full border-2 transition-all ${
-                  filters.rags.includes(rag) ? 'border-gray-800 scale-110' : 'border-transparent opacity-50'
+                  filters.rags.includes(rag) ? 'border-gray-800 dark:border-gray-200 scale-110' : 'border-transparent opacity-50'
                 }`}
                 style={{ backgroundColor: RAG_COLORS[rag] }}
                 title={rag === 'none' ? 'None' : rag.toUpperCase()}

@@ -48,7 +48,7 @@ export default function LeftPanel({ width, onResize, scrollTop, onScroll }: Left
         style={{ height: HEADER_HEIGHT }}
       >
         <div className="flex-1 flex items-center bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded px-2 py-1">
-          <Search className="w-3.5 h-3.5 text-gray-400 mr-1.5" />
+          <Search className="w-3.5 h-3.5 text-gray-400 dark:text-gray-500 mr-1.5" />
           <input
             type="text"
             placeholder="Search tasks..."
@@ -87,7 +87,7 @@ export default function LeftPanel({ width, onResize, scrollTop, onScroll }: Left
           ))}
         </div>
         {visibleTasks.length === 0 && (
-          <div className="flex items-center justify-center h-32 text-gray-400 text-sm">
+          <div className="flex items-center justify-center h-32 text-gray-400 dark:text-gray-500 text-sm">
             No tasks found
           </div>
         )}

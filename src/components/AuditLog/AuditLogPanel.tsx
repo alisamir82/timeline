@@ -49,17 +49,17 @@ export default function AuditLogPanel({ onClose }: AuditLogPanelProps) {
     <div className="fixed right-0 top-0 h-full w-80 bg-white dark:bg-gray-900 border-l border-gray-200 dark:border-gray-700 shadow-lg z-50 flex flex-col">
       <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
         <div className="flex items-center gap-2">
-          <Clock className="w-4 h-4 text-gray-500" />
+          <Clock className="w-4 h-4 text-gray-500 dark:text-gray-400" />
           <span className="text-sm font-semibold text-gray-700 dark:text-gray-200">Activity Log</span>
         </div>
         <button onClick={onClose} className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded">
-          <X className="w-4 h-4 text-gray-400" />
+          <X className="w-4 h-4 text-gray-400 dark:text-gray-500" />
         </button>
       </div>
 
       <div className="flex-1 overflow-y-auto p-3 space-y-2">
         {sortedLog.length === 0 && (
-          <div className="text-center text-gray-400 text-sm py-8">
+          <div className="text-center text-gray-400 dark:text-gray-500 text-sm py-8">
             No activity recorded yet.
             <br />
             <span className="text-xs">Changes will appear here as you work.</span>
@@ -81,7 +81,7 @@ export default function AuditLogPanel({ onClose }: AuditLogPanelProps) {
               {' '}
               {event.action}d a {event.entityType}
             </div>
-            <div className="text-gray-400 mt-1">
+            <div className="text-gray-400 dark:text-gray-500 mt-1">
               {format(parseISO(event.timestamp), 'MMM d, HH:mm:ss')}
             </div>
           </div>

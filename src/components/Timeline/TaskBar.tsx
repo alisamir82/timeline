@@ -1,6 +1,7 @@
 import React, { useCallback, useRef } from 'react';
 import type { Task, ZoomLevel } from '../../types';
 import { useProjectStore } from '../../stores/useProjectStore';
+import type { ThemeMode } from '../../types';
 import {
   parseISO,
   dateToPixelOffset,
@@ -30,7 +31,9 @@ export default function TaskBar({ task, rowIndex, timelineStart, zoom }: TaskBar
     dragState,
     addNoteMode,
     addStickyNote,
+    theme,
   } = useProjectStore();
+  const isDark = theme === 'dark';
 
   const isSelected = selectedTaskId === task.id;
   const isHovered = hoveredTaskId === task.id;
@@ -142,7 +145,8 @@ export default function TaskBar({ task, rowIndex, timelineStart, zoom }: TaskBar
         <text
           x={cx + size + 4}
           y={cy + 4}
-          className="text-[11px] fill-gray-600"
+          className="text-[11px]"
+          fill={isDark ? '#e5e7eb' : '#4b5563'}
           style={{ pointerEvents: 'none' }}
         >
           {task.title}
@@ -232,7 +236,7 @@ export default function TaskBar({ task, rowIndex, timelineStart, zoom }: TaskBar
         x={left + 6}
         y={top + barHeight / 2 + 4}
         className="text-[11px] font-medium"
-        fill="#1f2937"
+        fill={isDark ? '#f3f4f6' : '#1f2937'}
         style={{ pointerEvents: 'none' }}
         clipPath={`inset(0 0 0 0)`}
       >

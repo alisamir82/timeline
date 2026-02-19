@@ -15,8 +15,9 @@ export default function DependencyLines({
   timelineStart,
   zoom,
 }: DependencyLinesProps) {
-  const { dependencies, hoveredDependencyId, hoveredTaskId, setHoveredDependency, deleteDependency } =
+  const { dependencies, hoveredDependencyId, hoveredTaskId, setHoveredDependency, deleteDependency, theme } =
     useProjectStore();
+  const isDark = theme === 'dark';
 
   const taskIndexMap = new Map<string, number>();
   visibleTasks.forEach((t, i) => taskIndexMap.set(t.id, i));
@@ -92,7 +93,7 @@ export default function DependencyLines({
             <path
               d={path}
               fill="none"
-              stroke={isHighlighted ? '#3b82f6' : '#94a3b8'}
+              stroke={isHighlighted ? '#3b82f6' : isDark ? '#cbd5e1' : '#94a3b8'}
               strokeWidth={isHighlighted ? 2 : 1.5}
               strokeDasharray={isHighlighted ? 'none' : '4 3'}
               markerEnd={`url(#arrow${isHighlighted ? '-active' : ''})`}

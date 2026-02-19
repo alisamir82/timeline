@@ -235,7 +235,9 @@ export default function StickyNoteLayer({
   totalWidth,
   totalHeight,
 }: StickyNoteLayerProps) {
-  const { stickyNotes } = useProjectStore();
+  const { stickyNotes, theme } = useProjectStore();
+  const isDark = theme === 'dark';
+  const arrowColor = isDark ? '#9ca3af' : '#6b7280';
 
   // Build a map of taskId -> rowIndex for visible tasks
   const taskRowMap = new Map<string, number>();
@@ -277,7 +279,7 @@ export default function StickyNoteLayer({
               y1={noteAnchorY}
               x2={borderPt.x}
               y2={borderPt.y}
-              stroke={note.color === '#fef08a' ? '#ca8a04' : '#6b7280'}
+              stroke={note.color === '#fef08a' ? (isDark ? '#eab308' : '#ca8a04') : arrowColor}
               strokeWidth={1.5}
               strokeDasharray="4 2"
               markerEnd="url(#note-arrow)"
@@ -294,7 +296,7 @@ export default function StickyNoteLayer({
             markerHeight={6}
             orient="auto-start-reverse"
           >
-            <path d="M 0 0 L 10 5 L 0 10 z" fill="#6b7280" />
+            <path d="M 0 0 L 10 5 L 0 10 z" fill={arrowColor} />
           </marker>
         </defs>
       </svg>
