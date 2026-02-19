@@ -1,4 +1,4 @@
-import React, { useRef, useMemo } from 'react';
+import React, { useRef, useMemo, useEffect } from 'react';
 import type { ZoomLevel, Task } from '../../types';
 import { useProjectStore } from '../../stores/useProjectStore';
 import {
@@ -8,6 +8,7 @@ import {
   COLUMN_WIDTHS,
   ROW_HEIGHT,
   HEADER_HEIGHT,
+  COLUMN_HEADER_HEIGHT,
   isWeekend,
   dateToPixelOffset,
 } from '../../utils/dates';
@@ -26,7 +27,15 @@ export default function TimelineGrid({ scrollTop, onScroll }: TimelineGridProps)
   const { project, zoom, getVisibleTasks, addNoteMode, setAddNoteMode, theme } = useProjectStore();
   const isDark = theme === 'dark';
   const containerRef = useRef<HTMLDivElement>(null);
+  const isScrollingSelf = useRef(false);
   const visibleTasks = getVisibleTasks();
+
+  // Sync scroll position from left panel
+  useEffect(() => {
+    if (containerRef.current && !isScrollingSelf.current) {
+      containerRef.current.scrollTop = scrollTop;
+    }
+  }, [scrollTop]);
 
   // Escape key cancels add-note mode
   React.useEffect(() => {
@@ -69,13 +78,18 @@ export default function TimelineGrid({ scrollTop, onScroll }: TimelineGridProps)
         scrollLeft={0}
       />
 
+      {/* Spacer matching left panel column headers height */}
+      <div className="flex-shrink-0 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800" style={{ height: COLUMN_HEADER_HEIGHT }} />
+
       {/* Scrollable body */}
       <div
         ref={containerRef}
         className="flex-1 overflow-auto"
         onScroll={(e) => {
+          isScrollingSelf.current = true;
           const el = e.target as HTMLElement;
           onScroll(el.scrollTop);
+          requestAnimationFrame(() => { isScrollingSelf.current = false; });
         }}
       >
         <div style={{ width: totalWidth, height: totalHeight, position: 'relative' }}>

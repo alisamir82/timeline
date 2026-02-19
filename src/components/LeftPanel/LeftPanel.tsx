@@ -1,8 +1,8 @@
-import React, { useRef } from 'react';
+import React, { useRef, useEffect } from 'react';
 import { Plus, Search } from 'lucide-react';
 import { useProjectStore } from '../../stores/useProjectStore';
 import TaskRow from './TaskRow';
-import { HEADER_HEIGHT, ROW_HEIGHT } from '../../utils/dates';
+import { HEADER_HEIGHT, ROW_HEIGHT, COLUMN_HEADER_HEIGHT } from '../../utils/dates';
 
 interface LeftPanelProps {
   width: number;
@@ -16,6 +16,14 @@ export default function LeftPanel({ width, onResize, scrollTop, onScroll }: Left
   const visibleTasks = getVisibleTasks();
   const listRef = useRef<HTMLDivElement>(null);
   const resizeRef = useRef<{ startX: number; startWidth: number } | null>(null);
+  const isScrollingSelf = useRef(false);
+
+  // Sync scroll position from timeline
+  useEffect(() => {
+    if (listRef.current && !isScrollingSelf.current) {
+      listRef.current.scrollTop = scrollTop;
+    }
+  }, [scrollTop]);
 
   const handleResizeStart = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -67,7 +75,7 @@ export default function LeftPanel({ width, onResize, scrollTop, onScroll }: Left
       </div>
 
       {/* Column headers */}
-      <div className="flex items-center px-3 py-1 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+      <div className="flex items-center px-3 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider flex-shrink-0" style={{ height: COLUMN_HEADER_HEIGHT }}>
         <span className="flex-1 pl-8">Task</span>
         <span className="w-20 mr-2">Owner</span>
         <span className="w-20 mr-2">Status</span>
@@ -79,7 +87,11 @@ export default function LeftPanel({ width, onResize, scrollTop, onScroll }: Left
       <div
         ref={listRef}
         className="flex-1 overflow-y-auto overflow-x-hidden"
-        onScroll={(e) => onScroll((e.target as HTMLElement).scrollTop)}
+        onScroll={(e) => {
+          isScrollingSelf.current = true;
+          onScroll((e.target as HTMLElement).scrollTop);
+          requestAnimationFrame(() => { isScrollingSelf.current = false; });
+        }}
       >
         <div style={{ transform: `translateY(0px)` }}>
           {visibleTasks.map((task) => (
