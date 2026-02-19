@@ -16,19 +16,55 @@ interface StickyNoteLayerProps {
 const NOTE_WIDTH = 150;
 const NOTE_MIN_HEIGHT = 60;
 
-/** Calculate the center point of a task bar on the grid */
-function getTaskBarCenter(
+/** Calculate the center point and bounding rect of a task bar on the grid */
+function getTaskBarGeometry(
   task: Task,
   rowIndex: number,
   timelineStart: Date,
   zoom: ZoomLevel
-): { x: number; y: number } {
+): { center: { x: number; y: number }; rect: { x: number; y: number; w: number; h: number } } {
   const startPx = dateToPixelOffset(parseISO(task.startDate), timelineStart, zoom);
   const endPx = dateToPixelOffset(parseISO(task.endDate), timelineStart, zoom);
-  return {
-    x: (startPx + endPx) / 2,
-    y: rowIndex * ROW_HEIGHT + ROW_HEIGHT / 2,
-  };
+  const cy = rowIndex * ROW_HEIGHT + ROW_HEIGHT / 2;
+
+  if (task.type === 'milestone') {
+    const size = 10;
+    return { center: { x: startPx, y: cy }, rect: { x: startPx - size, y: cy - size, w: size * 2, h: size * 2 } };
+  }
+  if (task.type === 'summary') {
+    const barW = Math.max(endPx - startPx, 20);
+    return { center: { x: startPx + barW / 2, y: cy }, rect: { x: startPx, y: cy - 6, w: barW, h: 12 } };
+  }
+  const barW = Math.max(endPx - startPx, 20);
+  const barH = ROW_HEIGHT - 8;
+  const barY = rowIndex * ROW_HEIGHT + 4;
+  return { center: { x: startPx + barW / 2, y: barY + barH / 2 }, rect: { x: startPx, y: barY, w: barW, h: barH } };
+}
+
+/** Find the point on a rectangle's border where a line from an external point to the rect center intersects */
+function getRectBorderPoint(
+  fromX: number,
+  fromY: number,
+  rect: { x: number; y: number; w: number; h: number }
+): { x: number; y: number } {
+  const cx = rect.x + rect.w / 2;
+  const cy = rect.y + rect.h / 2;
+  const dx = fromX - cx;
+  const dy = fromY - cy;
+
+  if (dx === 0 && dy === 0) return { x: cx, y: cy };
+
+  const hw = rect.w / 2;
+  const hh = rect.h / 2;
+
+  let t: number;
+  if (Math.abs(dx) * hh > Math.abs(dy) * hw) {
+    t = hw / Math.abs(dx);
+  } else {
+    t = hh / Math.abs(dy);
+  }
+
+  return { x: cx + dx * t, y: cy + dy * t };
 }
 
 function StickyNoteCard({
@@ -223,7 +259,7 @@ export default function StickyNoteLayer({
         {visibleNotes.map((note) => {
           const task = taskMap.get(note.taskId)!;
           const rowIdx = taskRowMap.get(note.taskId)!;
-          const center = getTaskBarCenter(task, rowIdx, timelineStart, zoom);
+          const { center, rect } = getTaskBarGeometry(task, rowIdx, timelineStart, zoom);
 
           // Note anchor: bottom-center of note when above, top-center when below
           const noteX = center.x + note.offsetX + NOTE_WIDTH / 2;
@@ -231,13 +267,16 @@ export default function StickyNoteLayer({
           const isAbove = noteY < center.y;
           const noteAnchorY = isAbove ? noteY + NOTE_MIN_HEIGHT : noteY;
 
+          // Arrow target: border of the task bar, not its center
+          const borderPt = getRectBorderPoint(noteX, noteAnchorY, rect);
+
           return (
             <line
               key={note.id}
               x1={noteX}
               y1={noteAnchorY}
-              x2={center.x}
-              y2={center.y}
+              x2={borderPt.x}
+              y2={borderPt.y}
               stroke={note.color === '#fef08a' ? '#ca8a04' : '#6b7280'}
               strokeWidth={1.5}
               strokeDasharray="4 2"
@@ -264,7 +303,7 @@ export default function StickyNoteLayer({
       {visibleNotes.map((note) => {
         const task = taskMap.get(note.taskId)!;
         const rowIdx = taskRowMap.get(note.taskId)!;
-        const center = getTaskBarCenter(task, rowIdx, timelineStart, zoom);
+        const { center } = getTaskBarGeometry(task, rowIdx, timelineStart, zoom);
 
         return (
           <StickyNoteCard

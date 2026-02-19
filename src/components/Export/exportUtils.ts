@@ -396,37 +396,65 @@ function renderToCanvas(opts: ExportOptions): HTMLCanvasElement {
     const rowIdx = taskIndexMap.get(note.taskId);
     if (!task || rowIdx === undefined) continue;
 
-    // Task bar center
+    // Task bar geometry
     const taskStartPx = gridLeft + dateToPixelOffset(parseISO(task.startDate), timelineStart, zoom);
     const taskEndPx = gridLeft + dateToPixelOffset(parseISO(task.endDate), timelineStart, zoom);
     const taskCenterX = (taskStartPx + taskEndPx) / 2;
     const taskCenterY = bodyTop + rowIdx * ROW_HEIGHT + ROW_HEIGHT / 2;
 
+    // Compute bar bounding rect for border intersection
+    let barRect: { x: number; y: number; w: number; h: number };
+    if (task.type === 'milestone') {
+      const s = 8;
+      barRect = { x: taskStartPx - s, y: taskCenterY - s, w: s * 2, h: s * 2 };
+    } else if (task.type === 'summary') {
+      const bw = Math.max(taskEndPx - taskStartPx, 16);
+      barRect = { x: taskStartPx, y: taskCenterY - 5, w: bw, h: 10 };
+    } else {
+      const bw = Math.max(taskEndPx - taskStartPx, 16);
+      const barH = ROW_HEIGHT - 12;
+      barRect = { x: taskStartPx, y: bodyTop + rowIdx * ROW_HEIGHT + 6, w: bw, h: barH };
+    }
+
     // Note position
     const noteX = taskCenterX + note.offsetX;
     const noteY = taskCenterY + note.offsetY;
 
-    // Arrow line from note to task
+    // Arrow line from note to task bar border
     const noteAnchorX = noteX + NOTE_W / 2;
     const isAbove = noteY < taskCenterY;
     const noteAnchorY = isAbove ? noteY + NOTE_H : noteY;
+
+    // Find intersection with bar border
+    const bcx = barRect.x + barRect.w / 2;
+    const bcy = barRect.y + barRect.h / 2;
+    const dx = noteAnchorX - bcx;
+    const dy = noteAnchorY - bcy;
+    let borderX = bcx, borderY = bcy;
+    if (dx !== 0 || dy !== 0) {
+      const hw = barRect.w / 2;
+      const hh = barRect.h / 2;
+      const t = Math.abs(dx) * hh > Math.abs(dy) * hw ? hw / Math.abs(dx) : hh / Math.abs(dy);
+      borderX = bcx + dx * t;
+      borderY = bcy + dy * t;
+    }
 
     ctx.strokeStyle = '#9ca3af';
     ctx.lineWidth = 1.2;
     ctx.setLineDash([4, 2]);
     ctx.beginPath();
     ctx.moveTo(noteAnchorX, noteAnchorY);
-    ctx.lineTo(taskCenterX, taskCenterY);
+    ctx.lineTo(borderX, borderY);
     ctx.stroke();
     ctx.setLineDash([]);
 
-    // Arrowhead at task end
-    const angle = Math.atan2(taskCenterY - noteAnchorY, taskCenterX - noteAnchorX);
+    // Arrowhead at bar border
+    const angle = Math.atan2(borderY - noteAnchorY, borderX - noteAnchorX);
     ctx.fillStyle = '#9ca3af';
     ctx.beginPath();
-    ctx.moveTo(taskCenterX, taskCenterY);
-    ctx.lineTo(taskCenterX - 6 * Math.cos(angle - 0.4), taskCenterY - 6 * Math.sin(angle - 0.4));
-    ctx.lineTo(taskCenterX - 6 * Math.cos(angle + 0.4), taskCenterY - 6 * Math.sin(angle + 0.4));
+    ctx.moveTo(borderX, borderY);
+    ctx.lineTo(borderX - 6 * Math.cos(angle - 0.4), borderY - 6 * Math.sin(angle - 0.4));
+    ctx.lineTo(borderX - 6 * Math.cos(angle + 0.4), borderY - 6 * Math.sin(angle + 0.4));
     ctx.closePath();
     ctx.fill();
 
