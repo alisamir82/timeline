@@ -71,7 +71,7 @@ export default function App() {
     };
   }, [autoSave]);
 
-  // Load auto-saved data on startup
+  // Load auto-saved data on startup, or persist the default project
   useEffect(() => {
     const saved = localStorage.getItem('timeline-autosave-data');
     if (saved) {
@@ -83,6 +83,10 @@ export default function App() {
       } catch {
         // ignore
       }
+    } else {
+      // Save the default project to localStorage on first load
+      const json = useProjectStore.getState().exportAllData();
+      localStorage.setItem('timeline-autosave-data', json);
     }
   }, []);
 
