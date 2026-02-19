@@ -26,8 +26,31 @@ import {
 import { wouldCreateCycle } from '../utils/dependencies';
 import { toISODate, addDays, parseISO, differenceInCalendarDays } from '../utils/dates';
 
+// Serializable project data for save/load
+export interface ProjectData {
+  project: Project;
+  tasks: Task[];
+  dependencies: Dependency[];
+  customFields: CustomFieldDefinition[];
+  customFieldValues: CustomFieldValue[];
+  users: User[];
+  auditLog: AuditEvent[];
+}
+
+interface DragState {
+  taskId: string;
+  mode: 'move' | 'resize-left' | 'resize-right';
+  startX: number;
+  originalStart: string;
+  originalEnd: string;
+}
+
 interface ProjectState {
-  // Data
+  // Multi-project
+  projects: ProjectData[];
+  activeProjectIndex: number;
+
+  // Shortcut accessors to active project data
   project: Project;
   tasks: Task[];
   dependencies: Dependency[];
@@ -70,6 +93,10 @@ interface ProjectState {
   addCustomField: (field: Partial<CustomFieldDefinition>) => void;
   updateCustomFieldValue: (taskId: string, fieldId: string, value: string) => void;
 
+  // User management
+  addUser: (name: string, email: string, role: Role) => void;
+  removeUser: (id: string) => void;
+
   // Filters
   setFilters: (filters: Partial<FilterState>) => void;
   clearFilters: () => void;
@@ -88,17 +115,24 @@ interface ProjectState {
   getTaskDependencies: (taskId: string) => Dependency[];
   getCustomFieldValuesForTask: (taskId: string) => CustomFieldValue[];
 
+  // Multi-project
+  switchProject: (index: number) => void;
+  createProject: (name: string, description: string) => void;
+  deleteProject: (index: number) => void;
+  updateProject: (updates: Partial<Project>) => void;
+
+  // Save/Load
+  exportAllData: () => string;
+  importAllData: (json: string) => boolean;
+  exportActiveProject: () => string;
+  importProject: (json: string) => boolean;
+
   // Internal
   addAuditEvent: (action: string, entityType: string, entityId: string, before: unknown, after: unknown) => void;
+  syncActiveProject: () => void;
 }
 
-interface DragState {
-  taskId: string;
-  mode: 'move' | 'resize-left' | 'resize-right';
-  startX: number;
-  originalStart: string;
-  originalEnd: string;
-}
+type Role = 'workspace_admin' | 'project_admin' | 'editor' | 'viewer';
 
 const defaultFilters: FilterState = {
   searchText: '',
@@ -110,8 +144,33 @@ const defaultFilters: FilterState = {
   tags: [],
 };
 
-export const useProjectStore = create<ProjectState>((set, get) => ({
-  // Initial data
+function makeEmptyProjectData(name: string, description: string, createdBy: string): ProjectData {
+  const id = uuidv4();
+  const now = toISODate(new Date());
+  const endDate = toISODate(addDays(new Date(), 90));
+  return {
+    project: {
+      id,
+      workspaceId: 'ws-1',
+      name,
+      description,
+      startDate: now,
+      endDate,
+      schedulingMode: 'warn',
+      defaultZoom: 'week',
+      createdBy,
+      createdAt: now,
+    },
+    tasks: [],
+    dependencies: [],
+    customFields: [],
+    customFieldValues: [],
+    users: [],
+    auditLog: [],
+  };
+}
+
+const initialProject: ProjectData = {
   project: sampleProject,
   tasks: sampleTasks,
   dependencies: sampleDependencies,
@@ -119,6 +178,21 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   customFieldValues: sampleCustomFieldValues,
   users: sampleUsers,
   auditLog: sampleAuditEvents,
+};
+
+export const useProjectStore = create<ProjectState>((set, get) => ({
+  // Multi-project
+  projects: [initialProject],
+  activeProjectIndex: 0,
+
+  // Active project data (synced from projects[activeProjectIndex])
+  project: initialProject.project,
+  tasks: initialProject.tasks,
+  dependencies: initialProject.dependencies,
+  customFields: initialProject.customFields,
+  customFieldValues: initialProject.customFieldValues,
+  users: initialProject.users,
+  auditLog: initialProject.auditLog,
   currentUser: sampleUsers[0],
 
   // UI state
@@ -175,6 +249,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
 
     set({ tasks: [...tasks, newTask], selectedTaskId: newTask.id, showTaskDetails: true });
     get().addAuditEvent('create', 'task', newTask.id, null, newTask);
+    get().syncActiveProject();
   },
 
   updateTask: (id, updates) => {
@@ -184,7 +259,6 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
 
     const updatedTask = { ...oldTask, ...updates, updatedAt: new Date().toISOString() };
 
-    // If dates changed, recalculate duration
     if (updates.startDate || updates.endDate) {
       const start = parseISO(updatedTask.startDate);
       const end = parseISO(updatedTask.endDate);
@@ -193,6 +267,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
 
     set({ tasks: tasks.map((t) => (t.id === id ? updatedTask : t)) });
     get().addAuditEvent('update', 'task', id, oldTask, updatedTask);
+    get().syncActiveProject();
   },
 
   deleteTask: (id) => {
@@ -200,7 +275,6 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     const task = tasks.find((t) => t.id === id);
     if (!task) return;
 
-    // Also delete children
     const childIds = tasks.filter((t) => t.parentId === id).map((t) => t.id);
     const allIdsToDelete = [id, ...childIds];
 
@@ -213,6 +287,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       ),
     });
     get().addAuditEvent('delete', 'task', id, task, null);
+    get().syncActiveProject();
   },
 
   moveTask: (id, newStartDate, newEndDate) => {
@@ -226,6 +301,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
         t.id === id ? { ...t, collapsed: !t.collapsed } : t
       ),
     });
+    get().syncActiveProject();
   },
 
   reorderTask: (id, newIndex) => {
@@ -240,6 +316,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     set({
       tasks: sortedTasks.map((t, i) => ({ ...t, orderIndex: i })),
     });
+    get().syncActiveProject();
   },
 
   // Dependency CRUD
@@ -249,7 +326,6 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     if (predecessorId === successorId) return false;
     if (wouldCreateCycle(dependencies, predecessorId, successorId)) return false;
 
-    // Check for duplicate
     const exists = dependencies.some(
       (d) => d.predecessorTaskId === predecessorId && d.successorTaskId === successorId
     );
@@ -267,6 +343,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
 
     set({ dependencies: [...dependencies, newDep] });
     get().addAuditEvent('create', 'dependency', newDep.id, null, newDep);
+    get().syncActiveProject();
     return true;
   },
 
@@ -275,6 +352,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     const dep = dependencies.find((d) => d.id === id);
     set({ dependencies: dependencies.filter((d) => d.id !== id) });
     if (dep) get().addAuditEvent('delete', 'dependency', id, dep, null);
+    get().syncActiveProject();
   },
 
   // Custom fields
@@ -293,6 +371,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       ...field,
     };
     set({ customFields: [...customFields, newField] });
+    get().syncActiveProject();
   },
 
   updateCustomFieldValue: (taskId, fieldId, value) => {
@@ -315,6 +394,27 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
         ],
       });
     }
+    get().syncActiveProject();
+  },
+
+  // User management
+  addUser: (name, email, role) => {
+    const { users } = get();
+    const newUser: User = {
+      id: uuidv4(),
+      name,
+      email,
+      role,
+    };
+    set({ users: [...users, newUser] });
+    get().syncActiveProject();
+  },
+
+  removeUser: (id) => {
+    const { users, currentUser } = get();
+    if (id === currentUser.id) return; // can't remove self
+    set({ users: users.filter((u) => u.id !== id) });
+    get().syncActiveProject();
   },
 
   // Filters
@@ -332,6 +432,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
         taskIds.includes(t.id) ? { ...t, ...updates, updatedAt: new Date().toISOString() } : t
       ),
     });
+    get().syncActiveProject();
   },
 
   bulkShiftDates: (taskIds, days) => {
@@ -349,6 +450,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
         };
       }),
     });
+    get().syncActiveProject();
   },
 
   bulkDelete: (taskIds) => {
@@ -359,6 +461,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
         (d) => !taskIds.includes(d.predecessorTaskId) && !taskIds.includes(d.successorTaskId)
       ),
     });
+    get().syncActiveProject();
   },
 
   // Drag
@@ -369,13 +472,11 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     const { tasks, filters } = get();
     let result = [...tasks].sort((a, b) => a.orderIndex - b.orderIndex);
 
-    // Filter by collapsed parents
     const collapsedParentIds = new Set(
       tasks.filter((t) => t.type === 'summary' && t.collapsed).map((t) => t.id)
     );
     result = result.filter((t) => !t.parentId || !collapsedParentIds.has(t.parentId));
 
-    // Apply filters
     if (filters.searchText) {
       const q = filters.searchText.toLowerCase();
       result = result.filter(
@@ -417,6 +518,122 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
 
   getCustomFieldValuesForTask: (taskId) => {
     return get().customFieldValues.filter((v) => v.taskId === taskId);
+  },
+
+  // Multi-project
+  switchProject: (index) => {
+    const { projects } = get();
+    if (index < 0 || index >= projects.length) return;
+    const pd = projects[index];
+    set({
+      activeProjectIndex: index,
+      project: pd.project,
+      tasks: pd.tasks,
+      dependencies: pd.dependencies,
+      customFields: pd.customFields,
+      customFieldValues: pd.customFieldValues,
+      users: pd.users,
+      auditLog: pd.auditLog,
+      zoom: pd.project.defaultZoom,
+      selectedTaskId: null,
+      showTaskDetails: false,
+      filters: defaultFilters,
+    });
+  },
+
+  createProject: (name, description) => {
+    const { projects, currentUser } = get();
+    const newPd = makeEmptyProjectData(name, description, currentUser.id);
+    // Carry over users from current project
+    newPd.users = [...get().users];
+    const newProjects = [...projects, newPd];
+    set({ projects: newProjects });
+    get().switchProject(newProjects.length - 1);
+  },
+
+  deleteProject: (index) => {
+    const { projects, activeProjectIndex } = get();
+    if (projects.length <= 1) return; // must keep at least one
+    const newProjects = projects.filter((_, i) => i !== index);
+    const newActive = activeProjectIndex >= newProjects.length ? newProjects.length - 1 : activeProjectIndex;
+    set({ projects: newProjects });
+    get().switchProject(newActive);
+  },
+
+  updateProject: (updates) => {
+    const { project } = get();
+    const updated = { ...project, ...updates };
+    set({ project: updated });
+    get().syncActiveProject();
+  },
+
+  // Save/Load
+  exportAllData: () => {
+    get().syncActiveProject();
+    const { projects, currentUser } = get();
+    return JSON.stringify({ version: 1, projects, currentUser }, null, 2);
+  },
+
+  importAllData: (json) => {
+    try {
+      const data = JSON.parse(json);
+      if (!data.projects || !Array.isArray(data.projects) || data.projects.length === 0) {
+        return false;
+      }
+      set({ projects: data.projects });
+      if (data.currentUser) {
+        set({ currentUser: data.currentUser });
+      }
+      get().switchProject(0);
+      return true;
+    } catch {
+      return false;
+    }
+  },
+
+  exportActiveProject: () => {
+    get().syncActiveProject();
+    const { projects, activeProjectIndex } = get();
+    return JSON.stringify({ version: 1, project: projects[activeProjectIndex] }, null, 2);
+  },
+
+  importProject: (json) => {
+    try {
+      const data = JSON.parse(json);
+      let pd: ProjectData;
+      if (data.project && data.project.project) {
+        pd = data.project;
+      } else if (data.projects && data.projects.length > 0) {
+        // Importing full export, take first project
+        pd = data.projects[0];
+      } else {
+        return false;
+      }
+      const { projects } = get();
+      const newProjects = [...projects, pd];
+      set({ projects: newProjects });
+      get().switchProject(newProjects.length - 1);
+      return true;
+    } catch {
+      return false;
+    }
+  },
+
+  // Sync active project data back into projects array
+  syncActiveProject: () => {
+    const { projects, activeProjectIndex, project, tasks, dependencies, customFields, customFieldValues, users, auditLog } = get();
+    const updated: ProjectData = {
+      project,
+      tasks,
+      dependencies,
+      customFields,
+      customFieldValues,
+      users,
+      auditLog,
+    };
+    const newProjects = [...projects];
+    newProjects[activeProjectIndex] = updated;
+    set({ projects: newProjects });
   },
 
   // Internal helper

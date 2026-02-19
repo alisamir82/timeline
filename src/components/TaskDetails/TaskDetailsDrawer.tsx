@@ -5,10 +5,80 @@ import {
   Link,
   Diamond,
   ChevronDown,
+  Plus,
 } from 'lucide-react';
 import type { Task, RAGStatus, DependencyType } from '../../types';
 import { DEFAULT_STATUSES, DEFAULT_COLORS, RAG_COLORS, DEPENDENCY_TYPE_LABELS } from '../../types';
 import { useProjectStore } from '../../stores/useProjectStore';
+
+function TagsEditor({ task, onUpdate }: { task: Task; onUpdate: (tags: string[]) => void }) {
+  const [input, setInput] = useState('');
+  const { tasks } = useProjectStore();
+  const allTags = [...new Set(tasks.flatMap((t) => t.tags))].sort();
+  const suggestions = allTags.filter((t) => !task.tags.includes(t) && t.toLowerCase().includes(input.toLowerCase()));
+
+  const addTag = (tag: string) => {
+    const trimmed = tag.trim();
+    if (trimmed && !task.tags.includes(trimmed)) {
+      onUpdate([...task.tags, trimmed]);
+    }
+    setInput('');
+  };
+
+  return (
+    <div>
+      <label className="text-[11px] font-medium text-gray-500 uppercase tracking-wider">Tags</label>
+      <div className="flex flex-wrap gap-1 mt-1">
+        {task.tags.map((tag, i) => (
+          <span key={i} className="flex items-center gap-1 px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded-full group">
+            {tag}
+            <button
+              onClick={() => onUpdate(task.tags.filter((_, idx) => idx !== i))}
+              className="text-gray-400 hover:text-red-500"
+            >
+              <X className="w-2.5 h-2.5" />
+            </button>
+          </span>
+        ))}
+      </div>
+      <div className="mt-1.5 flex gap-1">
+        <input
+          type="text"
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && input.trim()) {
+              addTag(input);
+            }
+          }}
+          className="flex-1 px-2 py-1 border border-gray-200 rounded text-xs"
+          placeholder="Add tag..."
+          list="tag-suggestions"
+        />
+        <button
+          onClick={() => addTag(input)}
+          disabled={!input.trim()}
+          className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded hover:bg-gray-200 disabled:opacity-40"
+        >
+          <Plus className="w-3 h-3" />
+        </button>
+      </div>
+      {input && suggestions.length > 0 && (
+        <div className="mt-1 border border-gray-200 rounded bg-white shadow-sm max-h-24 overflow-y-auto">
+          {suggestions.map((s) => (
+            <button
+              key={s}
+              onClick={() => addTag(s)}
+              className="block w-full text-left px-2 py-1 text-xs text-gray-600 hover:bg-gray-50"
+            >
+              {s}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function TaskDetailsDrawer() {
   const {
@@ -257,22 +327,8 @@ export default function TaskDetailsDrawer() {
           />
         </div>
 
-        {/* Tags */}
-        <div>
-          <label className="text-[11px] font-medium text-gray-500 uppercase tracking-wider">
-            Tags
-          </label>
-          <div className="flex flex-wrap gap-1 mt-1">
-            {task.tags.map((tag, i) => (
-              <span
-                key={i}
-                className="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded-full"
-              >
-                {tag}
-              </span>
-            ))}
-          </div>
-        </div>
+        {/* Tags - editable */}
+        <TagsEditor task={task} onUpdate={(tags) => handleFieldChange('tags', tags)} />
 
         {/* Custom Fields */}
         {customFields.length > 0 && (

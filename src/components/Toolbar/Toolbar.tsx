@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   ZoomIn,
   ZoomOut,
@@ -6,10 +6,11 @@ import {
   Filter,
   Download,
   Plus,
-  Undo2,
-  Redo2,
-  Settings,
   History,
+  ChevronDown,
+  Save,
+  Upload,
+  FolderOpen,
 } from 'lucide-react';
 import type { ZoomLevel } from '../../types';
 import { useProjectStore } from '../../stores/useProjectStore';
@@ -18,6 +19,9 @@ interface ToolbarProps {
   onToggleFilters: () => void;
   onToggleAuditLog: () => void;
   onExport: (format: 'png' | 'pdf' | 'csv') => void;
+  onProjectClick: () => void;
+  onSave: () => void;
+  onLoad: () => void;
   filtersVisible: boolean;
 }
 
@@ -33,9 +37,14 @@ export default function Toolbar({
   onToggleFilters,
   onToggleAuditLog,
   onExport,
+  onProjectClick,
+  onSave,
+  onLoad,
   filtersVisible,
 }: ToolbarProps) {
   const { project, zoom, setZoom, addTask } = useProjectStore();
+  const [exportOpen, setExportOpen] = useState(false);
+  const exportRef = useRef<HTMLDivElement>(null);
 
   const currentIndex = ZOOM_LEVELS.indexOf(zoom);
 
@@ -47,12 +56,31 @@ export default function Toolbar({
     if (currentIndex < ZOOM_LEVELS.length - 1) setZoom(ZOOM_LEVELS[currentIndex + 1]);
   };
 
+  // Close export menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (exportRef.current && !exportRef.current.contains(e.target as Node)) {
+        setExportOpen(false);
+      }
+    };
+    if (exportOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [exportOpen]);
+
   return (
     <div className="h-12 bg-white border-b border-gray-200 flex items-center px-4 gap-2">
-      {/* Project name */}
-      <h1 className="text-base font-semibold text-gray-800 mr-4 truncate max-w-48">
-        {project.name}
-      </h1>
+      {/* Project name - clickable */}
+      <button
+        onClick={onProjectClick}
+        className="flex items-center gap-1.5 text-base font-semibold text-gray-800 mr-2 truncate max-w-56 hover:bg-gray-100 px-2 py-1 rounded transition-colors"
+        title="Manage projects"
+      >
+        <FolderOpen className="w-4 h-4 text-blue-500 flex-shrink-0" />
+        <span className="truncate">{project.name}</span>
+        <ChevronDown className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
+      </button>
 
       <div className="h-6 w-px bg-gray-200" />
 
@@ -115,6 +143,26 @@ export default function Toolbar({
 
       <div className="flex-1" />
 
+      {/* Save / Load */}
+      <button
+        onClick={onSave}
+        className="flex items-center gap-1 px-2 py-1.5 text-xs text-gray-600 rounded hover:bg-gray-100"
+        title="Save to file"
+      >
+        <Save className="w-3.5 h-3.5" />
+        Save
+      </button>
+      <button
+        onClick={onLoad}
+        className="flex items-center gap-1 px-2 py-1.5 text-xs text-gray-600 rounded hover:bg-gray-100"
+        title="Load from file"
+      >
+        <Upload className="w-3.5 h-3.5" />
+        Load
+      </button>
+
+      <div className="h-6 w-px bg-gray-200" />
+
       {/* Filter toggle */}
       <button
         onClick={onToggleFilters}
@@ -138,32 +186,38 @@ export default function Toolbar({
         Log
       </button>
 
-      {/* Export */}
-      <div className="relative group">
-        <button className="flex items-center gap-1 px-2 py-1.5 text-xs text-gray-600 rounded hover:bg-gray-100">
+      {/* Export - click-based dropdown */}
+      <div className="relative" ref={exportRef}>
+        <button
+          onClick={() => setExportOpen(!exportOpen)}
+          className="flex items-center gap-1 px-2 py-1.5 text-xs text-gray-600 rounded hover:bg-gray-100"
+        >
           <Download className="w-3.5 h-3.5" />
           Export
+          <ChevronDown className="w-3 h-3" />
         </button>
-        <div className="absolute right-0 top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto transition-opacity z-30">
-          <button
-            onClick={() => onExport('png')}
-            className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 whitespace-nowrap"
-          >
-            Export PNG
-          </button>
-          <button
-            onClick={() => onExport('pdf')}
-            className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 whitespace-nowrap"
-          >
-            Export PDF
-          </button>
-          <button
-            onClick={() => onExport('csv')}
-            className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 whitespace-nowrap"
-          >
-            Export CSV
-          </button>
-        </div>
+        {exportOpen && (
+          <div className="absolute right-0 top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-30 py-1 min-w-36">
+            <button
+              onClick={() => { onExport('png'); setExportOpen(false); }}
+              className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 whitespace-nowrap"
+            >
+              Export PNG
+            </button>
+            <button
+              onClick={() => { onExport('pdf'); setExportOpen(false); }}
+              className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 whitespace-nowrap"
+            >
+              Export PDF
+            </button>
+            <button
+              onClick={() => { onExport('csv'); setExportOpen(false); }}
+              className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 whitespace-nowrap"
+            >
+              Export CSV
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
