@@ -28,10 +28,20 @@ export default function TaskBar({ task, rowIndex, timelineStart, zoom }: TaskBar
     updateTask,
     setDragState,
     dragState,
+    addNoteMode,
+    addStickyNote,
   } = useProjectStore();
 
   const isSelected = selectedTaskId === task.id;
   const isHovered = hoveredTaskId === task.id;
+
+  const handleClick = useCallback(() => {
+    if (addNoteMode) {
+      addStickyNote(task.id);
+    } else {
+      selectTask(task.id);
+    }
+  }, [addNoteMode, addStickyNote, selectTask, task.id]);
   const dragRef = useRef<{
     mode: 'move' | 'resize-left' | 'resize-right';
     startX: number;
@@ -117,7 +127,7 @@ export default function TaskBar({ task, rowIndex, timelineStart, zoom }: TaskBar
     const size = 10;
     return (
       <g
-        onClick={() => selectTask(task.id)}
+        onClick={handleClick}
         onDoubleClick={() => openTaskDetails(task.id)}
         onMouseEnter={() => setHoveredTask(task.id)}
         onMouseLeave={() => setHoveredTask(null)}
@@ -145,7 +155,7 @@ export default function TaskBar({ task, rowIndex, timelineStart, zoom }: TaskBar
   if (task.type === 'summary') {
     return (
       <g
-        onClick={() => selectTask(task.id)}
+        onClick={handleClick}
         onDoubleClick={() => openTaskDetails(task.id)}
         onMouseEnter={() => setHoveredTask(task.id)}
         onMouseLeave={() => setHoveredTask(null)}
@@ -199,7 +209,7 @@ export default function TaskBar({ task, rowIndex, timelineStart, zoom }: TaskBar
         opacity={0.2}
         stroke={isSelected ? '#2563eb' : isHovered ? '#93c5fd' : 'transparent'}
         strokeWidth={isSelected ? 2 : isHovered ? 1.5 : 0}
-        onClick={() => selectTask(task.id)}
+        onClick={handleClick}
         onDoubleClick={() => openTaskDetails(task.id)}
       />
 
@@ -238,7 +248,7 @@ export default function TaskBar({ task, rowIndex, timelineStart, zoom }: TaskBar
         fill="transparent"
         className="cursor-grab"
         onMouseDown={(e) => handleDragStart(e, 'move')}
-        onClick={() => selectTask(task.id)}
+        onClick={handleClick}
         onDoubleClick={() => openTaskDetails(task.id)}
       />
 

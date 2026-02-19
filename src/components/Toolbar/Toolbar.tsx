@@ -11,6 +11,7 @@ import {
   Save,
   Upload,
   FolderOpen,
+  StickyNote,
 } from 'lucide-react';
 import type { ZoomLevel } from '../../types';
 import { useProjectStore } from '../../stores/useProjectStore';
@@ -42,7 +43,7 @@ export default function Toolbar({
   onLoad,
   filtersVisible,
 }: ToolbarProps) {
-  const { project, zoom, setZoom, addTask } = useProjectStore();
+  const { project, zoom, setZoom, addTask, addNoteMode, setAddNoteMode } = useProjectStore();
   const [exportOpen, setExportOpen] = useState(false);
   const exportRef = useRef<HTMLDivElement>(null);
 
@@ -91,6 +92,20 @@ export default function Toolbar({
       >
         <Plus className="w-3.5 h-3.5" />
         Add Task
+      </button>
+
+      {/* Add note */}
+      <button
+        onClick={() => setAddNoteMode(!addNoteMode)}
+        className={`flex items-center gap-1.5 px-2.5 py-1.5 text-sm rounded transition-colors ${
+          addNoteMode
+            ? 'bg-amber-100 text-amber-700 ring-1 ring-amber-300'
+            : 'text-gray-600 hover:bg-gray-100'
+        }`}
+        title={addNoteMode ? 'Cancel adding note' : 'Add a sticky note to a task'}
+      >
+        <StickyNote className="w-3.5 h-3.5" />
+        Note
       </button>
 
       <div className="h-6 w-px bg-gray-200" />

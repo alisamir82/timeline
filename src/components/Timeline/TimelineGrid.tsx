@@ -15,6 +15,7 @@ import TimelineHeader from './TimelineHeader';
 import TaskBar from './TaskBar';
 import DependencyLines from './DependencyLines';
 import TodayLine from './TodayLine';
+import StickyNoteLayer from './StickyNoteLayer';
 
 interface TimelineGridProps {
   scrollTop: number;
@@ -22,9 +23,19 @@ interface TimelineGridProps {
 }
 
 export default function TimelineGrid({ scrollTop, onScroll }: TimelineGridProps) {
-  const { project, zoom, getVisibleTasks } = useProjectStore();
+  const { project, zoom, getVisibleTasks, addNoteMode, setAddNoteMode } = useProjectStore();
   const containerRef = useRef<HTMLDivElement>(null);
   const visibleTasks = getVisibleTasks();
+
+  // Escape key cancels add-note mode
+  React.useEffect(() => {
+    if (!addNoteMode) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setAddNoteMode(false);
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [addNoteMode, setAddNoteMode]);
 
   const timelineStart = useMemo(() => addDays(parseISO(project.startDate), -7), [project.startDate]);
   const timelineEnd = useMemo(() => addDays(parseISO(project.endDate), 14), [project.endDate]);
@@ -35,7 +46,20 @@ export default function TimelineGrid({ scrollTop, onScroll }: TimelineGridProps)
   const totalHeight = visibleTasks.length * ROW_HEIGHT;
 
   return (
-    <div className="flex-1 flex flex-col overflow-hidden bg-white">
+    <div className={`flex-1 flex flex-col overflow-hidden bg-white ${addNoteMode ? 'cursor-crosshair' : ''}`}>
+      {/* Add-note mode hint */}
+      {addNoteMode && (
+        <div className="bg-amber-50 border-b border-amber-200 px-4 py-1.5 flex items-center justify-between text-xs text-amber-800">
+          <span>Click on a task bar to add a sticky note</span>
+          <button
+            onClick={() => setAddNoteMode(false)}
+            className="px-2 py-0.5 rounded bg-amber-200 hover:bg-amber-300 transition-colors"
+          >
+            Cancel (Esc)
+          </button>
+        </div>
+      )}
+
       {/* Sticky timeline header */}
       <TimelineHeader
         startDate={timelineStart}
@@ -153,6 +177,15 @@ export default function TimelineGrid({ scrollTop, onScroll }: TimelineGridProps)
               height={totalHeight}
             />
           </svg>
+
+          {/* Sticky notes layer */}
+          <StickyNoteLayer
+            visibleTasks={visibleTasks}
+            timelineStart={timelineStart}
+            zoom={zoom}
+            totalWidth={totalWidth}
+            totalHeight={totalHeight}
+          />
         </div>
       </div>
     </div>

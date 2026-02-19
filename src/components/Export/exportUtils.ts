@@ -1,5 +1,5 @@
 import jsPDF from 'jspdf';
-import type { Task, Dependency, CustomFieldDefinition, CustomFieldValue, ZoomLevel, Project } from '../../types';
+import type { Task, Dependency, CustomFieldDefinition, CustomFieldValue, ZoomLevel, Project, StickyNote } from '../../types';
 import { RAG_COLORS } from '../../types';
 import {
   parseISO,
@@ -24,6 +24,7 @@ export interface ExportOptions {
   project: Project;
   tasks: Task[];
   dependencies: Dependency[];
+  stickyNotes: StickyNote[];
   zoom: ZoomLevel;
 }
 
@@ -56,7 +57,7 @@ function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: numbe
 const FONT = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
 
 function renderToCanvas(opts: ExportOptions): HTMLCanvasElement {
-  const { project, tasks, dependencies, zoom } = opts;
+  const { project, tasks, dependencies, stickyNotes, zoom } = opts;
   const { timelineStart, units, colWidth, gridWidth, totalWidth, totalHeight } = getTimelineBounds(opts);
 
   const scale = 2;
@@ -386,6 +387,84 @@ function renderToCanvas(opts: ExportOptions): HTMLCanvasElement {
     ctx.setLineDash([4, 3]);
   }
   ctx.setLineDash([]);
+
+  // ===== Sticky notes =====
+  const NOTE_W = 120;
+  const NOTE_H = 52;
+  for (const note of stickyNotes) {
+    const task = taskMap.get(note.taskId);
+    const rowIdx = taskIndexMap.get(note.taskId);
+    if (!task || rowIdx === undefined) continue;
+
+    // Task bar center
+    const taskStartPx = gridLeft + dateToPixelOffset(parseISO(task.startDate), timelineStart, zoom);
+    const taskEndPx = gridLeft + dateToPixelOffset(parseISO(task.endDate), timelineStart, zoom);
+    const taskCenterX = (taskStartPx + taskEndPx) / 2;
+    const taskCenterY = bodyTop + rowIdx * ROW_HEIGHT + ROW_HEIGHT / 2;
+
+    // Note position
+    const noteX = taskCenterX + note.offsetX;
+    const noteY = taskCenterY + note.offsetY;
+
+    // Arrow line from note to task
+    const noteAnchorX = noteX + NOTE_W / 2;
+    const isAbove = noteY < taskCenterY;
+    const noteAnchorY = isAbove ? noteY + NOTE_H : noteY;
+
+    ctx.strokeStyle = '#9ca3af';
+    ctx.lineWidth = 1.2;
+    ctx.setLineDash([4, 2]);
+    ctx.beginPath();
+    ctx.moveTo(noteAnchorX, noteAnchorY);
+    ctx.lineTo(taskCenterX, taskCenterY);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Arrowhead at task end
+    const angle = Math.atan2(taskCenterY - noteAnchorY, taskCenterX - noteAnchorX);
+    ctx.fillStyle = '#9ca3af';
+    ctx.beginPath();
+    ctx.moveTo(taskCenterX, taskCenterY);
+    ctx.lineTo(taskCenterX - 6 * Math.cos(angle - 0.4), taskCenterY - 6 * Math.sin(angle - 0.4));
+    ctx.lineTo(taskCenterX - 6 * Math.cos(angle + 0.4), taskCenterY - 6 * Math.sin(angle + 0.4));
+    ctx.closePath();
+    ctx.fill();
+
+    // Note background
+    ctx.fillStyle = note.color;
+    ctx.shadowColor = 'rgba(0,0,0,0.15)';
+    ctx.shadowBlur = 4;
+    ctx.shadowOffsetX = 1;
+    ctx.shadowOffsetY = 2;
+    roundRect(ctx, noteX, noteY, NOTE_W, NOTE_H, 3);
+    ctx.fill();
+    ctx.shadowColor = 'transparent';
+    ctx.shadowBlur = 0;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 0;
+
+    // Note border
+    ctx.strokeStyle = 'rgba(0,0,0,0.1)';
+    ctx.lineWidth = 0.5;
+    roundRect(ctx, noteX, noteY, NOTE_W, NOTE_H, 3);
+    ctx.stroke();
+
+    // Note text
+    if (note.text) {
+      ctx.fillStyle = '#1f2937';
+      ctx.font = `9px ${FONT}`;
+      const lines = note.text.split('\n');
+      const maxLines = 4;
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(noteX + 4, noteY + 4, NOTE_W - 8, NOTE_H - 8);
+      ctx.clip();
+      for (let li = 0; li < Math.min(lines.length, maxLines); li++) {
+        ctx.fillText(lines[li], noteX + 6, noteY + 14 + li * 11);
+      }
+      ctx.restore();
+    }
+  }
 
   // ===== Outer border =====
   ctx.strokeStyle = '#e5e7eb';

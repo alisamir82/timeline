@@ -127,6 +127,23 @@ export interface AuditEvent {
   timestamp: string;
 }
 
+export interface StickyNote {
+  id: string;
+  taskId: string;
+  text: string;
+  color: string; // e.g. '#fef08a' (yellow), '#bfdbfe' (blue), '#fbcfe8' (pink), '#bbf7d0' (green)
+  offsetX: number; // px offset from task bar center
+  offsetY: number; // px offset from task row center
+  createdAt: string;
+}
+
+export const STICKY_NOTE_COLORS: Record<string, string> = {
+  yellow: '#fef08a',
+  blue: '#bfdbfe',
+  pink: '#fbcfe8',
+  green: '#bbf7d0',
+};
+
 // ---- View & Filter ----
 
 export interface SavedView {

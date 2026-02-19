@@ -7,6 +7,7 @@ import type {
   CustomFieldDefinition,
   CustomFieldValue,
   AuditEvent,
+  StickyNote,
   User,
   ZoomLevel,
   FilterState,
@@ -33,6 +34,7 @@ export interface ProjectData {
   dependencies: Dependency[];
   customFields: CustomFieldDefinition[];
   customFieldValues: CustomFieldValue[];
+  stickyNotes: StickyNote[];
   users: User[];
   auditLog: AuditEvent[];
 }
@@ -56,6 +58,7 @@ interface ProjectState {
   dependencies: Dependency[];
   customFields: CustomFieldDefinition[];
   customFieldValues: CustomFieldValue[];
+  stickyNotes: StickyNote[];
   users: User[];
   auditLog: AuditEvent[];
   currentUser: User;
@@ -68,6 +71,7 @@ interface ProjectState {
   showTaskDetails: boolean;
   filters: FilterState;
   dragState: DragState | null;
+  addNoteMode: boolean;
 
   // Actions
   setZoom: (zoom: ZoomLevel) => void;
@@ -105,6 +109,12 @@ interface ProjectState {
   bulkUpdateTasks: (taskIds: string[], updates: Partial<Task>) => void;
   bulkShiftDates: (taskIds: string[], days: number) => void;
   bulkDelete: (taskIds: string[]) => void;
+
+  // Sticky notes
+  setAddNoteMode: (on: boolean) => void;
+  addStickyNote: (taskId: string) => void;
+  updateStickyNote: (id: string, updates: Partial<StickyNote>) => void;
+  deleteStickyNote: (id: string) => void;
 
   // Drag
   setDragState: (state: DragState | null) => void;
@@ -165,6 +175,7 @@ function makeEmptyProjectData(name: string, description: string, createdBy: stri
     dependencies: [],
     customFields: [],
     customFieldValues: [],
+    stickyNotes: [],
     users: [],
     auditLog: [],
   };
@@ -176,6 +187,7 @@ const initialProject: ProjectData = {
   dependencies: sampleDependencies,
   customFields: sampleCustomFields,
   customFieldValues: sampleCustomFieldValues,
+  stickyNotes: [],
   users: sampleUsers,
   auditLog: sampleAuditEvents,
 };
@@ -191,6 +203,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   dependencies: initialProject.dependencies,
   customFields: initialProject.customFields,
   customFieldValues: initialProject.customFieldValues,
+  stickyNotes: initialProject.stickyNotes,
   users: initialProject.users,
   auditLog: initialProject.auditLog,
   currentUser: sampleUsers[0],
@@ -203,6 +216,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   showTaskDetails: false,
   filters: defaultFilters,
   dragState: null,
+  addNoteMode: false,
 
   // Zoom
   setZoom: (zoom) => set({ zoom }),
@@ -271,7 +285,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   },
 
   deleteTask: (id) => {
-    const { tasks, dependencies } = get();
+    const { tasks, dependencies, stickyNotes } = get();
     const task = tasks.find((t) => t.id === id);
     if (!task) return;
 
@@ -285,6 +299,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
           !allIdsToDelete.includes(d.predecessorTaskId) &&
           !allIdsToDelete.includes(d.successorTaskId)
       ),
+      stickyNotes: stickyNotes.filter((n) => !allIdsToDelete.includes(n.taskId)),
     });
     get().addAuditEvent('delete', 'task', id, task, null);
     get().syncActiveProject();
@@ -464,6 +479,38 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     get().syncActiveProject();
   },
 
+  // Sticky notes
+  setAddNoteMode: (on) => set({ addNoteMode: on }),
+
+  addStickyNote: (taskId) => {
+    const { stickyNotes } = get();
+    // One note per task
+    if (stickyNotes.some((n) => n.taskId === taskId)) return;
+    const newNote: StickyNote = {
+      id: uuidv4(),
+      taskId,
+      text: '',
+      color: '#fef08a',
+      offsetX: 60,
+      offsetY: -70,
+      createdAt: new Date().toISOString(),
+    };
+    set({ stickyNotes: [...stickyNotes, newNote], addNoteMode: false });
+    get().syncActiveProject();
+  },
+
+  updateStickyNote: (id, updates) => {
+    const { stickyNotes } = get();
+    set({ stickyNotes: stickyNotes.map((n) => (n.id === id ? { ...n, ...updates } : n)) });
+    get().syncActiveProject();
+  },
+
+  deleteStickyNote: (id) => {
+    const { stickyNotes } = get();
+    set({ stickyNotes: stickyNotes.filter((n) => n.id !== id) });
+    get().syncActiveProject();
+  },
+
   // Drag
   setDragState: (state) => set({ dragState: state }),
 
@@ -532,12 +579,14 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       dependencies: pd.dependencies,
       customFields: pd.customFields,
       customFieldValues: pd.customFieldValues,
+      stickyNotes: pd.stickyNotes || [],
       users: pd.users,
       auditLog: pd.auditLog,
       zoom: pd.project.defaultZoom,
       selectedTaskId: null,
       showTaskDetails: false,
       filters: defaultFilters,
+      addNoteMode: false,
     });
   },
 
@@ -621,13 +670,14 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
 
   // Sync active project data back into projects array
   syncActiveProject: () => {
-    const { projects, activeProjectIndex, project, tasks, dependencies, customFields, customFieldValues, users, auditLog } = get();
+    const { projects, activeProjectIndex, project, tasks, dependencies, customFields, customFieldValues, stickyNotes, users, auditLog } = get();
     const updated: ProjectData = {
       project,
       tasks,
       dependencies,
       customFields,
       customFieldValues,
+      stickyNotes,
       users,
       auditLog,
     };

@@ -1,5 +1,4 @@
 import React, { useState, useRef, useCallback } from 'react';
-// useRef still needed for fileInputRef
 import LeftPanel from './components/LeftPanel/LeftPanel';
 import TimelineGrid from './components/Timeline/TimelineGrid';
 import TaskDetailsDrawer from './components/TaskDetails/TaskDetailsDrawer';
@@ -12,7 +11,7 @@ import { exportPNG, exportPDF, exportCSV } from './components/Export/exportUtils
 import { LEFT_PANEL_DEFAULT_WIDTH } from './utils/dates';
 
 export default function App() {
-  const { project, tasks, dependencies, customFields, customFieldValues, zoom, showTaskDetails, currentUser, exportAllData, importAllData } =
+  const { project, tasks, dependencies, stickyNotes, customFields, customFieldValues, zoom, showTaskDetails, currentUser, exportAllData, importAllData } =
     useProjectStore();
   const [leftPanelWidth, setLeftPanelWidth] = useState(LEFT_PANEL_DEFAULT_WIDTH);
   const [scrollTop, setScrollTop] = useState(0);
@@ -27,14 +26,14 @@ export default function App() {
         exportCSV(tasks, customFields, customFieldValues);
         return;
       }
-      const opts = { project, tasks, dependencies, zoom };
+      const opts = { project, tasks, dependencies, stickyNotes, zoom };
       if (fmt === 'png') {
         exportPNG(opts);
       } else {
         exportPDF(opts);
       }
     },
-    [project, tasks, dependencies, zoom, customFields, customFieldValues]
+    [project, tasks, dependencies, stickyNotes, zoom, customFields, customFieldValues]
   );
 
   const handleSave = useCallback(() => {
