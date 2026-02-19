@@ -666,8 +666,8 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   // Save/Load
   exportAllData: () => {
     get().syncActiveProject();
-    const { projects, currentUser } = get();
-    return JSON.stringify({ version: 1, projects, currentUser }, null, 2);
+    const { projects, currentUser, activeProjectIndex } = get();
+    return JSON.stringify({ version: 1, projects, currentUser, activeProjectIndex }, null, 2);
   },
 
   importAllData: (json) => {
@@ -680,7 +680,10 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       if (data.currentUser) {
         set({ currentUser: data.currentUser });
       }
-      get().switchProject(0);
+      const index = typeof data.activeProjectIndex === 'number' && data.activeProjectIndex < data.projects.length
+        ? data.activeProjectIndex
+        : 0;
+      get().switchProject(index);
       return true;
     } catch {
       return false;
