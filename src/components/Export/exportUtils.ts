@@ -16,7 +16,7 @@ import { getDependencyPoints } from '../../utils/dependencies';
 
 const ROW_HEIGHT = 32;
 const HEADER_HEIGHT = 50;
-const TITLE_HEIGHT = 44;
+const TITLE_HEIGHT = 26;
 const TASK_LABEL_WIDTH = 200;
 const PADDING = 20;
 
@@ -123,14 +123,6 @@ function renderToCanvas(opts: ExportOptions): HTMLCanvasElement {
   ctx.font = `bold 16px ${FONT}`;
   ctx.fillText(project.name, ox, oy + 18);
 
-  ctx.fillStyle = colors.textSecondary;
-  ctx.font = `11px ${FONT}`;
-  const dateRange = `${format(parseISO(project.startDate), 'MMM d, yyyy')} – ${format(parseISO(project.endDate), 'MMM d, yyyy')}`;
-  ctx.fillText(dateRange, ox, oy + 34);
-
-  ctx.textAlign = 'right';
-  ctx.fillText(`Exported ${format(new Date(), 'MMM d, yyyy HH:mm')}`, ox + totalWidth - PADDING * 2, oy + 34);
-  ctx.textAlign = 'left';
 
   // ===== Header background =====
   ctx.fillStyle = colors.headerBg;
