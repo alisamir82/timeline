@@ -96,7 +96,7 @@ export function getUnitEnd(date: Date, zoom: ZoomLevel): Date {
 export function formatUnitLabel(date: Date, zoom: ZoomLevel): string {
   switch (zoom) {
     case 'day':
-      return format(date, 'd');
+      return format(date, 'EEEEEE d');
     case 'week':
       return format(date, 'MMM d');
     case 'month':

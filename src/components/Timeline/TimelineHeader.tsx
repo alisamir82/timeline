@@ -25,15 +25,16 @@ export default function TimelineHeader({
   const units = getTimelineUnits(startDate, endDate, zoom);
   const colWidth = COLUMN_WIDTHS[zoom];
 
-  // Group units by parent period for the top header row
-  const groups: Map<string, { label: string; count: number }> = new Map();
+  // Group consecutive units by parent period for the top header row
+  // Use an array (not Map) to preserve order and handle repeated labels correctly
+  const groups: Array<{ label: string; count: number }> = [];
   for (const unit of units) {
     const label = formatHeaderLabel(unit, zoom);
-    const existing = groups.get(label);
-    if (existing) {
-      existing.count++;
+    const last = groups[groups.length - 1];
+    if (last && last.label === label) {
+      last.count++;
     } else {
-      groups.set(label, { label, count: 1 });
+      groups.push({ label, count: 1 });
     }
   }
 
@@ -44,15 +45,19 @@ export default function TimelineHeader({
     >
       {/* Top row: grouped headers */}
       <div className="flex h-1/2 border-b border-gray-100 dark:border-gray-700">
-        {Array.from(groups.values()).map((group, i) => (
-          <div
-            key={i}
-            className="flex items-center justify-center text-xs font-semibold text-gray-600 dark:text-gray-300 border-r border-gray-100 dark:border-gray-700"
-            style={{ width: group.count * colWidth }}
-          >
-            {group.label}
-          </div>
-        ))}
+        {groups.map((group, i) => {
+          const groupWidth = group.count * colWidth;
+          return (
+            <div
+              key={i}
+              className="flex items-center justify-center text-xs font-semibold text-gray-600 dark:text-gray-300 border-r border-gray-100 dark:border-gray-700 overflow-hidden whitespace-nowrap"
+              style={{ width: groupWidth, minWidth: 0 }}
+              title={group.label}
+            >
+              {groupWidth >= 60 ? group.label : ''}
+            </div>
+          );
+        })}
       </div>
 
       {/* Bottom row: individual units */}
