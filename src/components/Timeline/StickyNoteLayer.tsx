@@ -237,7 +237,7 @@ export default function StickyNoteLayer({
 }: StickyNoteLayerProps) {
   const { stickyNotes, theme } = useProjectStore();
   const isDark = theme === 'dark';
-  const arrowColor = isDark ? '#9ca3af' : '#6b7280';
+  const arrowColor = isDark ? '#9ca3af' : '#4b5563';
 
   // Build a map of taskId -> rowIndex for visible tasks
   const taskRowMap = new Map<string, number>();
@@ -258,6 +258,30 @@ export default function StickyNoteLayer({
         className="absolute top-0 left-0 pointer-events-none"
         style={{ zIndex: 15 }}
       >
+        <defs>
+          <marker
+            id="note-arrow"
+            viewBox="0 0 10 10"
+            refX={9}
+            refY={5}
+            markerWidth={8}
+            markerHeight={8}
+            orient="auto-start-reverse"
+          >
+            <path d="M 0 0 L 10 5 L 0 10 z" fill={arrowColor} />
+          </marker>
+          <marker
+            id="note-arrow-yellow"
+            viewBox="0 0 10 10"
+            refX={9}
+            refY={5}
+            markerWidth={8}
+            markerHeight={8}
+            orient="auto-start-reverse"
+          >
+            <path d="M 0 0 L 10 5 L 0 10 z" fill={isDark ? '#eab308' : '#a16207'} />
+          </marker>
+        </defs>
         {visibleNotes.map((note) => {
           const task = taskMap.get(note.taskId)!;
           const rowIdx = taskRowMap.get(note.taskId)!;
@@ -272,6 +296,9 @@ export default function StickyNoteLayer({
           // Arrow target: border of the task bar, not its center
           const borderPt = getRectBorderPoint(noteX, noteAnchorY, rect);
 
+          const isYellow = note.color === '#fef08a';
+          const lineColor = isYellow ? (isDark ? '#eab308' : '#a16207') : arrowColor;
+
           return (
             <line
               key={note.id}
@@ -279,26 +306,13 @@ export default function StickyNoteLayer({
               y1={noteAnchorY}
               x2={borderPt.x}
               y2={borderPt.y}
-              stroke={note.color === '#fef08a' ? (isDark ? '#eab308' : '#ca8a04') : arrowColor}
-              strokeWidth={1.5}
-              strokeDasharray="4 2"
-              markerEnd="url(#note-arrow)"
+              stroke={lineColor}
+              strokeWidth={2}
+              strokeDasharray="6 3"
+              markerEnd={isYellow ? 'url(#note-arrow-yellow)' : 'url(#note-arrow)'}
             />
           );
         })}
-        <defs>
-          <marker
-            id="note-arrow"
-            viewBox="0 0 10 10"
-            refX={9}
-            refY={5}
-            markerWidth={6}
-            markerHeight={6}
-            orient="auto-start-reverse"
-          >
-            <path d="M 0 0 L 10 5 L 0 10 z" fill={arrowColor} />
-          </marker>
-        </defs>
       </svg>
 
       {/* Note cards (HTML layer) */}

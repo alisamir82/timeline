@@ -49,18 +49,18 @@ export default function LeftPanel({ width, onResize, scrollTop, onScroll }: Left
   }
 
   return (
-    <div className="flex flex-col border-r border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 relative" style={{ width }}>
+    <div className="flex flex-col border-r border-gray-200 dark:border-gray-700 corporate:border-[var(--corp-border)] bg-white dark:bg-gray-900 corporate:bg-slate-50 relative" style={{ width }}>
       {/* Header */}
       <div
-        className="flex items-center px-3 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 gap-2 flex-shrink-0"
+        className="flex items-center px-3 border-b border-gray-200 dark:border-gray-700 corporate:border-[var(--corp-border)] bg-gray-50 dark:bg-gray-800 corporate:bg-[var(--corp-bg)] gap-2 flex-shrink-0"
         style={{ height: HEADER_HEIGHT }}
       >
-        <div className="flex-1 flex items-center bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded px-2 py-1">
-          <Search className="w-3.5 h-3.5 text-gray-400 dark:text-gray-500 mr-1.5" />
+        <div className="flex-1 flex items-center bg-white dark:bg-gray-800 corporate:bg-[var(--corp-bg-hover)] border border-gray-200 dark:border-gray-600 corporate:border-[var(--corp-border)] rounded px-2 py-1">
+          <Search className="w-3.5 h-3.5 text-gray-400 dark:text-gray-500 corporate:text-[var(--corp-text-muted)] mr-1.5" />
           <input
             type="text"
             placeholder="Search tasks..."
-            className="text-sm w-full outline-none bg-transparent dark:text-gray-100"
+            className="text-sm w-full outline-none bg-transparent dark:text-gray-100 corporate:text-[var(--corp-text)] corporate:placeholder-[var(--corp-text-muted)]"
             value={filters.searchText}
             onChange={(e) => setFilters({ searchText: e.target.value })}
           />
@@ -75,7 +75,7 @@ export default function LeftPanel({ width, onResize, scrollTop, onScroll }: Left
       </div>
 
       {/* Column headers */}
-      <div className="flex items-center px-3 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider flex-shrink-0" style={{ height: COLUMN_HEADER_HEIGHT }}>
+      <div className="flex items-center px-3 border-b border-gray-200 dark:border-gray-700 corporate:border-[var(--corp-border)] bg-gray-50 dark:bg-gray-800 corporate:bg-[var(--corp-bg-lighter)] text-[10px] font-medium text-gray-500 dark:text-gray-400 corporate:text-[var(--corp-text-muted)] uppercase tracking-wider flex-shrink-0" style={{ height: COLUMN_HEADER_HEIGHT }}>
         <span className="flex-1 pl-8">Task</span>
         <span className="w-20 mr-2">Owner</span>
         <span className="w-20 mr-2">Status</span>

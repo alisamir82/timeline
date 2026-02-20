@@ -56,7 +56,7 @@ export default function TimelineGrid({ scrollTop, onScroll }: TimelineGridProps)
   const totalHeight = visibleTasks.length * ROW_HEIGHT;
 
   return (
-    <div className={`flex-1 flex flex-col overflow-hidden bg-white dark:bg-gray-900 ${addNoteMode ? 'cursor-crosshair' : ''}`}>
+    <div className={`flex-1 flex flex-col overflow-hidden bg-white dark:bg-gray-900 corporate:bg-slate-50 ${addNoteMode ? 'cursor-crosshair' : ''}`}>
       {/* Add-note mode hint */}
       {addNoteMode && (
         <div className="bg-amber-50 dark:bg-amber-900/30 border-b border-amber-200 dark:border-amber-800 px-4 py-1.5 flex items-center justify-between text-xs text-amber-800 dark:text-amber-200">
@@ -79,7 +79,7 @@ export default function TimelineGrid({ scrollTop, onScroll }: TimelineGridProps)
       />
 
       {/* Spacer matching left panel column headers height */}
-      <div className="flex-shrink-0 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800" style={{ height: COLUMN_HEADER_HEIGHT }} />
+      <div className="flex-shrink-0 border-b border-gray-200 dark:border-gray-700 corporate:border-slate-300 bg-gray-50 dark:bg-gray-800 corporate:bg-[var(--corp-bg-lighter)]" style={{ height: COLUMN_HEADER_HEIGHT }} />
 
       {/* Scrollable body */}
       <div

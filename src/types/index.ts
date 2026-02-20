@@ -4,7 +4,7 @@
 
 export type ZoomLevel = 'day' | 'week' | 'month' | 'quarter';
 
-export type ThemeMode = 'light' | 'dark';
+export type ThemeMode = 'light' | 'dark' | 'corporate';
 
 export type TaskType = 'task' | 'milestone' | 'summary';
 

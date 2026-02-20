@@ -247,7 +247,10 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     set({ theme });
   },
   toggleTheme: () => {
-    const newTheme = get().theme === 'light' ? 'dark' : 'light';
+    const themes: ThemeMode[] = ['light', 'dark', 'corporate'];
+    const current = get().theme;
+    const idx = themes.indexOf(current);
+    const newTheme = themes[(idx + 1) % themes.length];
     localStorage.setItem('timeline-theme', newTheme);
     set({ theme: newTheme });
   },
