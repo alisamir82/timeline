@@ -117,9 +117,9 @@ export default function TimelineGrid({ scrollTop, onScroll }: TimelineGridProps)
               {/* Quality gate stars */}
               {qualityGates.map((gate) => {
                 const cx = dateToPixelOffset(parseISO(gate.startDate), timelineStart, zoom);
-                const cy = COLUMN_HEADER_HEIGHT + 10;
-                const outerR = 8;
-                const innerR = 3.5;
+                const cy = COLUMN_HEADER_HEIGHT + 7;
+                const outerR = 6;
+                const innerR = 2.5;
 
                 const pts: string[] = [];
                 for (let i = 0; i < 5; i++) {
