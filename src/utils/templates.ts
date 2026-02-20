@@ -73,6 +73,7 @@ function buildProjectData(
     color: t.color,
     notes: '',
     tags: [],
+    splits: [],
     orderIndex: i,
     collapsed: false,
     createdBy,

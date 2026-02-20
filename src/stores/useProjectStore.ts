@@ -3,6 +3,7 @@ import { v4 as uuidv4 } from 'uuid';
 import type {
   Project,
   Task,
+  TaskSplit,
   Dependency,
   CustomFieldDefinition,
   CustomFieldValue,
@@ -102,6 +103,10 @@ interface ProjectState {
   toggleCollapse: (id: string) => void;
   reorderTask: (id: string, newIndex: number) => void;
 
+  // Task splitting
+  splitTask: (id: string) => void;
+  updateTaskSplit: (taskId: string, splitId: string, updates: Partial<TaskSplit>) => void;
+
   // Dependency CRUD
   addDependency: (predecessorId: string, successorId: string, type: DependencyType) => boolean;
   deleteDependency: (id: string) => void;
@@ -167,6 +172,11 @@ const defaultFilters: FilterState = {
   customFields: {},
   tags: [],
 };
+
+// Ensure backward-compatible tasks have the splits field
+function migrateTasks(tasks: Task[]): Task[] {
+  return tasks.map((t) => (t.splits ? t : { ...t, splits: [] }));
+}
 
 function makeEmptyProjectData(name: string, description: string, createdBy: string): ProjectData {
   const id = uuidv4();
@@ -295,6 +305,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       color: '#3b82f6',
       notes: '',
       tags: [],
+      splits: [],
       orderIndex: maxOrder + 1,
       collapsed: false,
       createdBy: currentUser.id,
@@ -372,6 +383,73 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
 
     set({
       tasks: sortedTasks.map((t, i) => ({ ...t, orderIndex: i })),
+    });
+    get().syncActiveProject();
+  },
+
+  // Task splitting
+  splitTask: (taskId) => {
+    const { tasks } = get();
+    const task = tasks.find((t) => t.id === taskId);
+    if (!task || task.type !== 'task') return;
+
+    // If already split, split the last segment further
+    if (task.splits.length > 0) return;
+
+    const start = parseISO(task.startDate);
+    const end = parseISO(task.endDate);
+    const totalDays = differenceInCalendarDays(end, start);
+    if (totalDays < 3) return; // need at least 3 days to split with a gap
+
+    const halfDays = Math.floor(totalDays / 2);
+    const firstEnd = addDays(start, halfDays - 1);
+    const secondStart = addDays(start, halfDays + 1);
+
+    const splits: TaskSplit[] = [
+      { id: uuidv4(), startDate: toISODate(start), endDate: toISODate(firstEnd) },
+      { id: uuidv4(), startDate: toISODate(secondStart), endDate: toISODate(end) },
+    ];
+
+    set({
+      tasks: tasks.map((t) =>
+        t.id === taskId ? { ...t, splits, updatedAt: new Date().toISOString() } : t
+      ),
+    });
+    get().addAuditEvent('split', 'task', taskId, task, { ...task, splits });
+    get().syncActiveProject();
+  },
+
+  updateTaskSplit: (taskId, splitId, updates) => {
+    const { tasks } = get();
+    const task = tasks.find((t) => t.id === taskId);
+    if (!task) return;
+
+    const newSplits = task.splits.map((s) =>
+      s.id === splitId ? { ...s, ...updates } : s
+    );
+
+    // Recalculate overall task dates from splits
+    const allStarts = newSplits.map((s) => s.startDate).sort();
+    const allEnds = newSplits.map((s) => s.endDate).sort();
+    const newStart = allStarts[0];
+    const newEnd = allEnds[allEnds.length - 1];
+
+    const startD = parseISO(newStart);
+    const endD = parseISO(newEnd);
+
+    set({
+      tasks: tasks.map((t) =>
+        t.id === taskId
+          ? {
+              ...t,
+              splits: newSplits,
+              startDate: newStart,
+              endDate: newEnd,
+              duration: Math.max(0, differenceInCalendarDays(endD, startD)),
+              updatedAt: new Date().toISOString(),
+            }
+          : t
+      ),
     });
     get().syncActiveProject();
   },
@@ -617,7 +695,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     set({
       activeProjectIndex: index,
       project: pd.project,
-      tasks: pd.tasks,
+      tasks: migrateTasks(pd.tasks),
       dependencies: pd.dependencies,
       customFields: pd.customFields,
       customFieldValues: pd.customFieldValues,

@@ -210,9 +210,36 @@ export default function TaskDetailsDrawer() {
           </div>
         </div>
 
-        {/* Duration display */}
-        <div className="text-xs text-gray-400 dark:text-gray-500">
-          Duration: {task.duration} day{task.duration !== 1 ? 's' : ''}
+        {/* Duration input */}
+        <div>
+          <label className="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+            Duration (days)
+          </label>
+          <input
+            type="number"
+            min={1}
+            value={task.duration}
+            onChange={(e) => {
+              const days = parseInt(e.target.value, 10);
+              if (!isNaN(days) && days > 0) {
+                handleFieldChange('duration', days);
+              }
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                const days = parseInt((e.target as HTMLInputElement).value, 10);
+                if (!isNaN(days) && days > 0) {
+                  const start = new Date(task.startDate);
+                  const newEnd = new Date(start);
+                  newEnd.setDate(start.getDate() + days);
+                  const endStr = newEnd.toISOString().split('T')[0];
+                  updateTask(task.id, { endDate: endStr, duration: days });
+                }
+              }
+            }}
+            className="w-full mt-1 px-2 py-1.5 border border-gray-200 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-400"
+          />
+          <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5">Press Enter to recalculate end date</p>
         </div>
 
         {/* Owner */}

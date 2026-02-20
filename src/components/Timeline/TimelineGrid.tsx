@@ -184,8 +184,15 @@ export default function TimelineGrid({ scrollTop, onScroll }: TimelineGridProps)
                 zoom={zoom}
               />
             ))}
+          </svg>
 
-            {/* Today line */}
+          {/* Today line - separate layer on top of task bars */}
+          <svg
+            width={totalWidth}
+            height={totalHeight}
+            className="absolute top-0 left-0"
+            style={{ pointerEvents: 'none', zIndex: 10 }}
+          >
             <TodayLine
               timelineStart={timelineStart}
               zoom={zoom}

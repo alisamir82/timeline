@@ -74,6 +74,7 @@ export interface Task {
   notes: string;
   tags: string[];
   orderIndex: number;
+  splits: TaskSplit[]; // split segments; empty = unsplit task
   collapsed: boolean; // UI state for summary tasks
   createdBy: string;
   createdAt: string;
@@ -127,6 +128,12 @@ export interface AuditEvent {
   beforeJson: string;
   afterJson: string;
   timestamp: string;
+}
+
+export interface TaskSplit {
+  id: string;
+  startDate: string; // ISO date
+  endDate: string;   // ISO date
 }
 
 export interface StickyNote {
