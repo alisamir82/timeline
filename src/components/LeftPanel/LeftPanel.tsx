@@ -100,21 +100,14 @@ export default function LeftPanel({ width, onResize, scrollTop, onScroll }: Left
 
       {/* Column headers — expands when quality gates exist */}
       <div
-        className="flex flex-col border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 flex-shrink-0"
+        className="flex items-center px-3 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider flex-shrink-0"
         style={{ height: COLUMN_HEADER_HEIGHT + (hasGates ? QUALITY_GATE_BAR_HEIGHT : 0) }}
       >
-        <div className="flex items-center px-3 text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider" style={{ height: COLUMN_HEADER_HEIGHT }}>
-          <span className="flex-1 pl-8">Task</span>
-          <span className="w-20 mr-2">Owner</span>
-          <span className="w-20 mr-2">Status</span>
-          <span className="w-5 text-center">RAG</span>
-          <span className="w-10 text-right pr-2">%</span>
-        </div>
-        {hasGates && (
-          <div className="flex items-center px-3 flex-1">
-            <span className="text-[10px] font-medium text-amber-600 dark:text-amber-400 uppercase tracking-wider">Quality Gates</span>
-          </div>
-        )}
+        <span className="flex-1 pl-8">Task</span>
+        <span className="w-20 mr-2">Owner</span>
+        <span className="w-20 mr-2">Status</span>
+        <span className="w-5 text-center">RAG</span>
+        <span className="w-10 text-right pr-2">%</span>
       </div>
 
       {/* Task list */}
