@@ -135,11 +135,37 @@ export default function TimelineGrid({ scrollTop, onScroll }: TimelineGridProps)
             ))}
           </svg>
 
-          {/* Task bars and dependency lines */}
+          {/* Task bars */}
           <svg
             width={totalWidth}
             height={totalHeight}
             className="absolute top-0 left-0"
+          >
+            {/* Task bars */}
+            {visibleTasks.map((task, i) => (
+              <TaskBar
+                key={task.id}
+                task={task}
+                rowIndex={i}
+                timelineStart={timelineStart}
+                zoom={zoom}
+              />
+            ))}
+
+            {/* Today line */}
+            <TodayLine
+              timelineStart={timelineStart}
+              zoom={zoom}
+              height={totalHeight}
+            />
+          </svg>
+
+          {/* Dependency lines layer (on top of task bars for clickability) */}
+          <svg
+            width={totalWidth}
+            height={totalHeight}
+            className="absolute top-0 left-0"
+            style={{ pointerEvents: 'none' }}
           >
             {/* Arrow marker definitions */}
             <defs>
@@ -172,24 +198,6 @@ export default function TimelineGrid({ scrollTop, onScroll }: TimelineGridProps)
               visibleTasks={visibleTasks}
               timelineStart={timelineStart}
               zoom={zoom}
-            />
-
-            {/* Task bars */}
-            {visibleTasks.map((task, i) => (
-              <TaskBar
-                key={task.id}
-                task={task}
-                rowIndex={i}
-                timelineStart={timelineStart}
-                zoom={zoom}
-              />
-            ))}
-
-            {/* Today line */}
-            <TodayLine
-              timelineStart={timelineStart}
-              zoom={zoom}
-              height={totalHeight}
             />
           </svg>
 

@@ -219,6 +219,7 @@ export default function DependencyLines({
         return (
           <g
             key={dep.id}
+            style={{ pointerEvents: 'auto' }}
             onMouseEnter={() => setHoveredDependency(dep.id)}
             onMouseLeave={() => {
               if (!dragRef.current) setHoveredDependency(null);

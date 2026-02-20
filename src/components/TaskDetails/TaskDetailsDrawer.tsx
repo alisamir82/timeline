@@ -112,6 +112,11 @@ export default function TaskDetailsDrawer() {
   const fieldValues = getCustomFieldValuesForTask(task.id);
 
   const handleFieldChange = (field: string, value: unknown) => {
+    // When changing type to milestone, sync endDate = startDate, duration = 0
+    if (field === 'type' && value === 'milestone') {
+      updateTask(task.id, { type: 'milestone', endDate: task.startDate, duration: 0 });
+      return;
+    }
     updateTask(task.id, { [field]: value });
   };
 
@@ -185,35 +190,53 @@ export default function TaskDetailsDrawer() {
         </div>
 
         {/* Dates */}
-        <div className="grid grid-cols-2 gap-3">
+        {task.type === 'milestone' ? (
           <div>
             <label className="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-              Start Date
+              Date
             </label>
             <input
               type="date"
               value={task.startDate}
-              onChange={(e) => handleFieldChange('startDate', e.target.value)}
+              onChange={(e) => {
+                updateTask(task.id, { startDate: e.target.value, endDate: e.target.value, duration: 0 });
+              }}
               className="w-full mt-1 px-2 py-1.5 border border-gray-200 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-400"
             />
           </div>
-          <div>
-            <label className="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-              End Date
-            </label>
-            <input
-              type="date"
-              value={task.endDate}
-              onChange={(e) => handleFieldChange('endDate', e.target.value)}
-              className="w-full mt-1 px-2 py-1.5 border border-gray-200 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-400"
-            />
-          </div>
-        </div>
+        ) : (
+          <>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  Start Date
+                </label>
+                <input
+                  type="date"
+                  value={task.startDate}
+                  onChange={(e) => handleFieldChange('startDate', e.target.value)}
+                  className="w-full mt-1 px-2 py-1.5 border border-gray-200 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-400"
+                />
+              </div>
+              <div>
+                <label className="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  End Date
+                </label>
+                <input
+                  type="date"
+                  value={task.endDate}
+                  onChange={(e) => handleFieldChange('endDate', e.target.value)}
+                  className="w-full mt-1 px-2 py-1.5 border border-gray-200 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-400"
+                />
+              </div>
+            </div>
 
-        {/* Duration display */}
-        <div className="text-xs text-gray-400 dark:text-gray-500">
-          Duration: {task.duration} day{task.duration !== 1 ? 's' : ''}
-        </div>
+            {/* Duration display */}
+            <div className="text-xs text-gray-400 dark:text-gray-500">
+              Duration: {task.duration} day{task.duration !== 1 ? 's' : ''}
+            </div>
+          </>
+        )}
 
         {/* Owner */}
         <div>
