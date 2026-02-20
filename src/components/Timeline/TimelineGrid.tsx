@@ -25,7 +25,8 @@ interface TimelineGridProps {
 }
 
 export default function TimelineGrid({ scrollTop, onScroll }: TimelineGridProps) {
-  const { project, zoom, getVisibleTasks, getQualityGates, getSplitSiblings, addNoteMode, setAddNoteMode, theme } = useProjectStore();
+  const { project, zoom, getVisibleTasks, getQualityGates, getSplitSiblings, addNoteMode, setAddNoteMode, theme,
+    selectedTaskId, hoveredTaskId, selectTask, openTaskDetails, setHoveredTask } = useProjectStore();
   const isDark = theme === 'dark';
   const containerRef = useRef<HTMLDivElement>(null);
   const isScrollingSelf = useRef(false);
@@ -61,9 +62,10 @@ export default function TimelineGrid({ scrollTop, onScroll }: TimelineGridProps)
   // Track horizontal scroll to sync header
   const [hScrollLeft, setHScrollLeft] = useState(0);
 
-  // Dynamic header height: expands when quality gates exist
-  const headerHeight = HEADER_HEIGHT + (hasGates ? QUALITY_GATE_BAR_HEIGHT : 0);
   const todayX = dateToPixelOffset(new Date(), timelineStart, zoom);
+
+  // Column header / gate area height: expands when gates exist
+  const columnHeaderHeight = COLUMN_HEADER_HEIGHT + (hasGates ? QUALITY_GATE_BAR_HEIGHT : 0);
 
   return (
     <div className={`flex-1 flex flex-col overflow-hidden bg-white dark:bg-gray-900 ${addNoteMode ? 'cursor-crosshair' : ''}`}>
@@ -88,14 +90,74 @@ export default function TimelineGrid({ scrollTop, onScroll }: TimelineGridProps)
             endDate={timelineEnd}
             zoom={zoom}
             scrollLeft={hScrollLeft}
-            gates={qualityGates}
-            todayX={todayX}
           />
         </div>
       </div>
 
-      {/* Spacer matching left panel column headers height */}
-      <div className="flex-shrink-0 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800" style={{ height: COLUMN_HEADER_HEIGHT }} />
+      {/* Column header spacer — expands when quality gates exist to show gate stars */}
+      <div
+        className="flex-shrink-0 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 relative overflow-hidden"
+        style={{ height: columnHeaderHeight }}
+      >
+        {/* Today line + gate stars rendered inside this area */}
+        <div style={{ transform: `translateX(${-hScrollLeft}px)`, width: totalWidth, height: columnHeaderHeight, position: 'absolute', top: 0, left: 0 }}>
+            <svg width={totalWidth} height={columnHeaderHeight} style={{ position: 'absolute', top: 0, left: 0 }}>
+              {/* Today line through the column header area */}
+              <line
+                x1={todayX}
+                y1={0}
+                x2={todayX}
+                y2={columnHeaderHeight}
+                stroke="#ef4444"
+                strokeWidth={1.5}
+                strokeDasharray="4 2"
+              />
+              <circle cx={todayX} cy={0} r={4} fill="#ef4444" />
+
+              {/* Quality gate stars */}
+              {qualityGates.map((gate) => {
+                const cx = dateToPixelOffset(parseISO(gate.startDate), timelineStart, zoom);
+                const cy = COLUMN_HEADER_HEIGHT + 13;
+                const outerR = 9;
+                const innerR = 4;
+
+                const pts: string[] = [];
+                for (let i = 0; i < 5; i++) {
+                  const outerAngle = (Math.PI / 2) + (2 * Math.PI * i) / 5;
+                  const innerAngle = outerAngle + Math.PI / 5;
+                  pts.push(`${cx + outerR * Math.cos(outerAngle)},${cy - outerR * Math.sin(outerAngle)}`);
+                  pts.push(`${cx + innerR * Math.cos(innerAngle)},${cy - innerR * Math.sin(innerAngle)}`);
+                }
+
+                return (
+                  <g
+                    key={gate.id}
+                    className="cursor-pointer"
+                    onClick={() => selectTask(gate.id)}
+                    onDoubleClick={() => openTaskDetails(gate.id)}
+                    onMouseEnter={() => setHoveredTask(gate.id)}
+                    onMouseLeave={() => setHoveredTask(null)}
+                  >
+                    <polygon
+                      points={pts.join(' ')}
+                      fill={gate.color}
+                    />
+                    <text
+                      x={cx}
+                      y={columnHeaderHeight - 2}
+                      textAnchor="middle"
+                      className="text-[9px] font-medium"
+                      fill={isDark ? '#d1d5db' : '#6b7280'}
+                      style={{ pointerEvents: 'none' }}
+                    >
+                      {gate.title}
+                    </text>
+                  </g>
+                );
+              })}
+            </svg>
+          </div>
+      </div>
 
       {/* Scrollable body */}
       <div
@@ -216,7 +278,7 @@ export default function TimelineGrid({ scrollTop, onScroll }: TimelineGridProps)
               );
             })}
 
-            {/* Today line (vertical dashed line only, marker is in header) */}
+            {/* Today line (vertical dashed line only) */}
             <TodayLine
               timelineStart={timelineStart}
               zoom={zoom}

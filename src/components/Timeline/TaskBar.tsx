@@ -178,9 +178,7 @@ export default function TaskBar({ task, rowIndex, timelineStart, zoom }: TaskBar
       >
         <polygon
           points={pts.join(' ')}
-          fill="#f59e0b"
-          stroke={isSelected ? '#2563eb' : isHovered ? '#60a5fa' : 'none'}
-          strokeWidth={isSelected || isHovered ? 2 : 0}
+          fill={task.color}
         />
         <text
           x={cx + outerR + 4}
