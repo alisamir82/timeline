@@ -89,6 +89,7 @@ function buildProjectData(
     type: 'FS' as const,
     lagDays: 0,
     createdAt: now,
+    manualRoute: null,
   }));
 
   return {

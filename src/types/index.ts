@@ -81,6 +81,11 @@ export interface Task {
   updatedAt: string;
 }
 
+export interface DependencyWaypoint {
+  x: number; // absolute pixel x (will be recalculated relative to segment)
+  y: number; // absolute pixel y
+}
+
 export interface Dependency {
   id: string;
   projectId: string;
@@ -89,6 +94,7 @@ export interface Dependency {
   type: DependencyType;
   lagDays: number;
   createdAt: string;
+  manualRoute: number[] | null; // stores the x-offsets for each vertical/horizontal segment of the path
 }
 
 export interface CustomFieldDefinition {

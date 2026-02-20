@@ -107,6 +107,7 @@ interface ProjectState {
   // Dependency CRUD
   addDependency: (predecessorId: string, successorId: string, type: DependencyType) => boolean;
   deleteDependency: (id: string) => void;
+  updateDependencyRoute: (id: string, manualRoute: number[] | null) => void;
 
   // Custom fields
   addCustomField: (field: Partial<CustomFieldDefinition>) => void;
@@ -574,6 +575,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       type,
       lagDays: 0,
       createdAt: new Date().toISOString(),
+      manualRoute: null,
     };
 
     set({ dependencies: [...dependencies, newDep] });
@@ -587,6 +589,16 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     const dep = dependencies.find((d) => d.id === id);
     set({ dependencies: dependencies.filter((d) => d.id !== id) });
     if (dep) get().addAuditEvent('delete', 'dependency', id, dep, null);
+    get().syncActiveProject();
+  },
+
+  updateDependencyRoute: (id, manualRoute) => {
+    const { dependencies } = get();
+    set({
+      dependencies: dependencies.map((d) =>
+        d.id === id ? { ...d, manualRoute } : d
+      ),
+    });
     get().syncActiveProject();
   },
 

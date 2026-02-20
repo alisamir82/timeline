@@ -419,6 +419,7 @@ export const sampleDependencies: Dependency[] = [
     type: 'FS',
     lagDays: 0,
     createdAt: toISO(today),
+    manualRoute: null,
   },
   {
     id: uuidv4(),
@@ -428,6 +429,7 @@ export const sampleDependencies: Dependency[] = [
     type: 'FS',
     lagDays: 0,
     createdAt: toISO(today),
+    manualRoute: null,
   },
   {
     id: uuidv4(),
@@ -437,6 +439,7 @@ export const sampleDependencies: Dependency[] = [
     type: 'FS',
     lagDays: 0,
     createdAt: toISO(today),
+    manualRoute: null,
   },
   {
     id: uuidv4(),
@@ -446,6 +449,7 @@ export const sampleDependencies: Dependency[] = [
     type: 'FS',
     lagDays: 0,
     createdAt: toISO(today),
+    manualRoute: null,
   },
   {
     id: uuidv4(),
@@ -455,6 +459,7 @@ export const sampleDependencies: Dependency[] = [
     type: 'FS',
     lagDays: 0,
     createdAt: toISO(today),
+    manualRoute: null,
   },
   {
     id: uuidv4(),
@@ -464,6 +469,7 @@ export const sampleDependencies: Dependency[] = [
     type: 'FS',
     lagDays: 0,
     createdAt: toISO(today),
+    manualRoute: null,
   },
   {
     id: uuidv4(),
@@ -473,6 +479,7 @@ export const sampleDependencies: Dependency[] = [
     type: 'FS',
     lagDays: 0,
     createdAt: toISO(today),
+    manualRoute: null,
   },
   {
     id: uuidv4(),
@@ -482,6 +489,7 @@ export const sampleDependencies: Dependency[] = [
     type: 'FS',
     lagDays: 0,
     createdAt: toISO(today),
+    manualRoute: null,
   },
   {
     id: uuidv4(),
@@ -491,6 +499,7 @@ export const sampleDependencies: Dependency[] = [
     type: 'FS',
     lagDays: 0,
     createdAt: toISO(today),
+    manualRoute: null,
   },
   {
     id: uuidv4(),
@@ -500,6 +509,7 @@ export const sampleDependencies: Dependency[] = [
     type: 'FS',
     lagDays: 0,
     createdAt: toISO(today),
+    manualRoute: null,
   },
   {
     id: uuidv4(),
@@ -509,6 +519,7 @@ export const sampleDependencies: Dependency[] = [
     type: 'FS',
     lagDays: 0,
     createdAt: toISO(today),
+    manualRoute: null,
   },
 ];
 
