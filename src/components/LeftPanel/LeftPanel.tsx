@@ -2,7 +2,7 @@ import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { Plus, Search } from 'lucide-react';
 import { useProjectStore } from '../../stores/useProjectStore';
 import TaskRow from './TaskRow';
-import { HEADER_HEIGHT, ROW_HEIGHT, COLUMN_HEADER_HEIGHT, QUALITY_GATE_BAR_HEIGHT } from '../../utils/dates';
+import { HEADER_HEIGHT, ROW_HEIGHT, COLUMN_HEADER_HEIGHT } from '../../utils/dates';
 
 interface LeftPanelProps {
   width: number;
@@ -12,9 +12,9 @@ interface LeftPanelProps {
 }
 
 export default function LeftPanel({ width, onResize, scrollTop, onScroll }: LeftPanelProps) {
-  const { getVisibleTasks, getQualityGates, tasks, addTask, reorderTask, filters, setFilters } = useProjectStore();
+  const { getVisibleTasks, tasks, addTask, reorderTask, filters, setFilters } = useProjectStore();
   const visibleTasks = getVisibleTasks();
-  const hasGates = getQualityGates().length > 0;
+
   const listRef = useRef<HTMLDivElement>(null);
   const resizeRef = useRef<{ startX: number; startWidth: number } | null>(null);
   const isScrollingSelf = useRef(false);
@@ -101,7 +101,7 @@ export default function LeftPanel({ width, onResize, scrollTop, onScroll }: Left
       {/* Column headers — expands when quality gates exist */}
       <div
         className="flex items-center px-3 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider flex-shrink-0"
-        style={{ height: COLUMN_HEADER_HEIGHT + (hasGates ? QUALITY_GATE_BAR_HEIGHT : 0) }}
+        style={{ height: COLUMN_HEADER_HEIGHT }}
       >
         <span className="flex-1 pl-8">Task</span>
         <span className="w-20 mr-2">Owner</span>

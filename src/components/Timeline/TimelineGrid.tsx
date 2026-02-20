@@ -9,7 +9,6 @@ import {
   ROW_HEIGHT,
   HEADER_HEIGHT,
   COLUMN_HEADER_HEIGHT,
-  QUALITY_GATE_BAR_HEIGHT,
   isWeekend,
   dateToPixelOffset,
 } from '../../utils/dates';
@@ -64,8 +63,7 @@ export default function TimelineGrid({ scrollTop, onScroll }: TimelineGridProps)
 
   const todayX = dateToPixelOffset(new Date(), timelineStart, zoom);
 
-  // Column header / gate area height: expands when gates exist
-  const columnHeaderHeight = COLUMN_HEADER_HEIGHT + (hasGates ? QUALITY_GATE_BAR_HEIGHT : 0);
+  const columnHeaderHeight = COLUMN_HEADER_HEIGHT;
 
   return (
     <div className={`flex-1 flex flex-col overflow-hidden bg-white dark:bg-gray-900 ${addNoteMode ? 'cursor-crosshair' : ''}`}>
@@ -117,7 +115,7 @@ export default function TimelineGrid({ scrollTop, onScroll }: TimelineGridProps)
               {/* Quality gate stars */}
               {qualityGates.map((gate) => {
                 const cx = dateToPixelOffset(parseISO(gate.startDate), timelineStart, zoom);
-                const cy = COLUMN_HEADER_HEIGHT + 5;
+                const cy = COLUMN_HEADER_HEIGHT - 12;
                 const outerR = 5;
                 const innerR = 2;
 
