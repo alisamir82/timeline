@@ -17,6 +17,7 @@ import {
   HardDriveDownload,
   ToggleLeft,
   ToggleRight,
+  Star,
 } from 'lucide-react';
 import type { ZoomLevel } from '../../types';
 import { useProjectStore } from '../../stores/useProjectStore';
@@ -104,6 +105,16 @@ export default function Toolbar({
       >
         <Plus className="w-3.5 h-3.5" />
         Add Task
+      </button>
+
+      {/* Add quality gate */}
+      <button
+        onClick={() => addTask({ type: 'quality_gate', title: 'Quality Gate', color: '#f59e0b', duration: 0 })}
+        className="flex items-center gap-1.5 px-2.5 py-1.5 text-sm text-gray-600 dark:text-gray-300 rounded hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+        title="Add Quality Gate"
+      >
+        <Star className="w-3.5 h-3.5 text-amber-500" fill="currentColor" />
+        Gate
       </button>
 
       {/* Add note */}

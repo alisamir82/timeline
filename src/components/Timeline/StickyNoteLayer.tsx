@@ -27,8 +27,8 @@ function getTaskBarGeometry(
   const endPx = dateToPixelOffset(parseISO(task.endDate), timelineStart, zoom);
   const cy = rowIndex * ROW_HEIGHT + ROW_HEIGHT / 2;
 
-  if (task.type === 'milestone') {
-    const size = 10;
+  if (task.type === 'milestone' || task.type === 'quality_gate') {
+    const size = 11;
     return { center: { x: startPx, y: cy }, rect: { x: startPx - size, y: cy - size, w: size * 2, h: size * 2 } };
   }
   if (task.type === 'summary') {

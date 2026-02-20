@@ -8,6 +8,7 @@ import {
   ChevronDown,
   Plus,
   Layers,
+  Star,
 } from 'lucide-react';
 import type { Task, RAGStatus, DependencyType, CustomFieldDefinition } from '../../types';
 import { DEFAULT_STATUSES, DEFAULT_COLORS, RAG_COLORS, DEPENDENCY_TYPE_LABELS } from '../../types';
@@ -695,26 +696,40 @@ function FlatTaskForm({
           <option value="task">Task</option>
           <option value="milestone">Milestone</option>
           <option value="summary">Summary</option>
+          <option value="quality_gate">Quality Gate</option>
         </select>
       </div>
 
       {/* Dates */}
-      <div className="grid grid-cols-2 gap-3">
+      {task.type === 'milestone' || task.type === 'quality_gate' ? (
         <div>
-          <label className="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Start Date</label>
-          <input type="date" value={task.startDate} onChange={(e) => handleFieldChange('startDate', e.target.value)}
+          <label className="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Date</label>
+          <input type="date" value={task.startDate} onChange={(e) => {
+            handleFieldChange('startDate', e.target.value);
+            handleFieldChange('endDate', e.target.value);
+          }}
             className="w-full mt-1 px-2 py-1.5 border border-gray-200 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-400" />
         </div>
-        <div>
-          <label className="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">End Date</label>
-          <input type="date" value={task.endDate} onChange={(e) => handleFieldChange('endDate', e.target.value)}
-            className="w-full mt-1 px-2 py-1.5 border border-gray-200 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-400" />
-        </div>
-      </div>
+      ) : (
+        <>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Start Date</label>
+              <input type="date" value={task.startDate} onChange={(e) => handleFieldChange('startDate', e.target.value)}
+                className="w-full mt-1 px-2 py-1.5 border border-gray-200 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-400" />
+            </div>
+            <div>
+              <label className="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">End Date</label>
+              <input type="date" value={task.endDate} onChange={(e) => handleFieldChange('endDate', e.target.value)}
+                className="w-full mt-1 px-2 py-1.5 border border-gray-200 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-400" />
+            </div>
+          </div>
 
-      <div className="text-xs text-gray-400 dark:text-gray-500">
-        Duration: {task.duration} day{task.duration !== 1 ? 's' : ''}
-      </div>
+          <div className="text-xs text-gray-400 dark:text-gray-500">
+            Duration: {task.duration} day{task.duration !== 1 ? 's' : ''}
+          </div>
+        </>
+      )}
 
       {/* Owner */}
       <div>
@@ -958,6 +973,7 @@ export default function TaskDetailsDrawer() {
       <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
         <div className="flex items-center gap-2">
           {task.type === 'milestone' && <Diamond className="w-4 h-4 text-purple-500" />}
+          {task.type === 'quality_gate' && <Star className="w-4 h-4 text-amber-500" fill="currentColor" />}
           {isSplit && <Layers className="w-4 h-4 text-blue-500" />}
           <span className="text-sm font-semibold text-gray-700 dark:text-gray-200">
             {isSplit ? 'Split Task' : 'Task Details'}

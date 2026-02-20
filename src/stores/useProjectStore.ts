@@ -278,6 +278,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     const { tasks, project, currentUser } = get();
     const maxOrder = tasks.length > 0 ? Math.max(...tasks.map((t) => t.orderIndex)) : -1;
 
+    const isSingleDate = partial.type === 'milestone' || partial.type === 'quality_gate';
     const newTask: Task = {
       id: uuidv4(),
       projectId: project.id,
@@ -286,8 +287,8 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       title: 'New Task',
       description: '',
       startDate: toISODate(new Date()),
-      endDate: toISODate(addDays(new Date(), 7)),
-      duration: 7,
+      endDate: isSingleDate ? toISODate(new Date()) : toISODate(addDays(new Date(), 7)),
+      duration: isSingleDate ? 0 : 7,
       ownerUserId: null,
       ownerText: '',
       status: 'Not Started',

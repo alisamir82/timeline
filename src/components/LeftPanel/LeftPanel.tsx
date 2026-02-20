@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { Plus, Search } from 'lucide-react';
 import { useProjectStore } from '../../stores/useProjectStore';
 import TaskRow from './TaskRow';
@@ -12,11 +12,34 @@ interface LeftPanelProps {
 }
 
 export default function LeftPanel({ width, onResize, scrollTop, onScroll }: LeftPanelProps) {
-  const { getVisibleTasks, tasks, addTask, filters, setFilters } = useProjectStore();
+  const { getVisibleTasks, tasks, addTask, reorderTask, filters, setFilters } = useProjectStore();
   const visibleTasks = getVisibleTasks();
   const listRef = useRef<HTMLDivElement>(null);
   const resizeRef = useRef<{ startX: number; startWidth: number } | null>(null);
   const isScrollingSelf = useRef(false);
+
+  // Drag-to-reorder state
+  const [dragFromIndex, setDragFromIndex] = useState<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+
+  const handleDragStart = useCallback((index: number) => {
+    setDragFromIndex(index);
+  }, []);
+
+  const handleDragOver = useCallback((index: number) => {
+    setDragOverIndex(index);
+  }, []);
+
+  const handleDragEnd = useCallback(() => {
+    if (dragFromIndex !== null && dragOverIndex !== null && dragFromIndex !== dragOverIndex) {
+      const task = visibleTasks[dragFromIndex];
+      if (task) {
+        reorderTask(task.id, dragOverIndex);
+      }
+    }
+    setDragFromIndex(null);
+    setDragOverIndex(null);
+  }, [dragFromIndex, dragOverIndex, visibleTasks, reorderTask]);
 
   // Sync scroll position from timeline
   useEffect(() => {
@@ -94,8 +117,18 @@ export default function LeftPanel({ width, onResize, scrollTop, onScroll }: Left
         }}
       >
         <div style={{ transform: `translateY(0px)` }}>
-          {visibleTasks.map((task) => (
-            <TaskRow key={task.id} task={task} depth={getDepth(task)} />
+          {visibleTasks.map((task, i) => (
+            <TaskRow
+              key={task.id}
+              task={task}
+              depth={getDepth(task)}
+              index={i}
+              onDragStart={handleDragStart}
+              onDragOver={handleDragOver}
+              onDragEnd={handleDragEnd}
+              isDragOver={dragOverIndex === i && dragFromIndex !== i}
+              isDragging={dragFromIndex === i}
+            />
           ))}
         </div>
         {visibleTasks.length === 0 && (

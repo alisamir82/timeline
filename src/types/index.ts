@@ -6,7 +6,7 @@ export type ZoomLevel = 'day' | 'week' | 'month' | 'quarter';
 
 export type ThemeMode = 'light' | 'dark';
 
-export type TaskType = 'task' | 'milestone' | 'summary';
+export type TaskType = 'task' | 'milestone' | 'summary' | 'quality_gate';
 
 export type RAGStatus = 'red' | 'amber' | 'green' | 'none';
 
