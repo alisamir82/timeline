@@ -98,6 +98,7 @@ interface ProjectState {
   addTask: (partial: Partial<Task>) => void;
   updateTask: (id: string, updates: Partial<Task>) => void;
   deleteTask: (id: string) => void;
+  splitTask: (id: string) => void;
   moveTask: (id: string, newStartDate: string, newEndDate: string) => void;
   toggleCollapse: (id: string) => void;
   reorderTask: (id: string, newIndex: number) => void;
@@ -134,6 +135,7 @@ interface ProjectState {
 
   // Computed
   getVisibleTasks: () => Task[];
+  getSplitSiblings: (splitGroupId: string) => Task[];
   getChildTasks: (parentId: string) => Task[];
   getTaskDependencies: (taskId: string) => Dependency[];
   getCustomFieldValuesForTask: (taskId: string) => CustomFieldValue[];
@@ -294,6 +296,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       tags: [],
       orderIndex: maxOrder + 1,
       collapsed: false,
+      splitGroupId: null,
       createdBy: currentUser.id,
       createdAt: now,
       updatedAt: now,
@@ -318,7 +321,30 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       updatedTask.duration = Math.max(0, differenceInCalendarDays(end, start));
     }
 
-    set({ tasks: tasks.map((t) => (t.id === id ? updatedTask : t)) });
+    let newTasks = tasks.map((t) => (t.id === id ? updatedTask : t));
+
+    // Sync shared properties across split siblings
+    const SHARED_FIELDS = ['title', 'description', 'type', 'ownerUserId', 'ownerText', 'status', 'rag', 'percentComplete', 'color', 'notes', 'tags', 'parentId'];
+    if (updatedTask.splitGroupId) {
+      const sharedUpdates: Partial<Task> = {};
+      let hasShared = false;
+      for (const key of SHARED_FIELDS) {
+        if (key in updates) {
+          (sharedUpdates as Record<string, unknown>)[key] = (updates as Record<string, unknown>)[key];
+          hasShared = true;
+        }
+      }
+      if (hasShared) {
+        newTasks = newTasks.map((t) => {
+          if (t.splitGroupId === updatedTask.splitGroupId && t.id !== id) {
+            return { ...t, ...sharedUpdates, updatedAt: new Date().toISOString() };
+          }
+          return t;
+        });
+      }
+    }
+
+    set({ tasks: newTasks });
     get().addAuditEvent('update', 'task', id, oldTask, updatedTask);
     get().syncActiveProject();
   },
@@ -328,8 +354,12 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     const task = tasks.find((t) => t.id === id);
     if (!task) return;
 
-    const childIds = tasks.filter((t) => t.parentId === id).map((t) => t.id);
-    const allIdsToDelete = [id, ...childIds];
+    // Collect all IDs to delete: the task, its children, and all split siblings
+    const splitSiblingIds = task.splitGroupId
+      ? tasks.filter((t) => t.splitGroupId === task.splitGroupId).map((t) => t.id)
+      : [id];
+    const childIds = tasks.filter((t) => splitSiblingIds.includes(t.parentId!)).map((t) => t.id);
+    const allIdsToDelete = [...new Set([...splitSiblingIds, ...childIds])];
 
     set({
       tasks: tasks.filter((t) => !allIdsToDelete.includes(t.id)),
@@ -341,6 +371,56 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       stickyNotes: stickyNotes.filter((n) => !allIdsToDelete.includes(n.taskId)),
     });
     get().addAuditEvent('delete', 'task', id, task, null);
+    get().syncActiveProject();
+  },
+
+  splitTask: (id) => {
+    const { tasks } = get();
+    const task = tasks.find((t) => t.id === id);
+    if (!task) return;
+
+    const groupId = task.splitGroupId || task.id;
+    const start = parseISO(task.startDate);
+    const end = parseISO(task.endDate);
+    const totalDays = differenceInCalendarDays(end, start);
+    if (totalDays < 2) return; // Need at least 2 days to split
+
+    const midDays = Math.floor(totalDays / 2);
+    const midDate = addDays(start, midDays);
+    const now = new Date().toISOString();
+
+    // Update original task: set splitGroupId and shorten to first half
+    const updatedOriginal = {
+      ...task,
+      splitGroupId: groupId,
+      endDate: toISODate(midDate),
+      duration: midDays,
+      updatedAt: now,
+    };
+
+    // Create new segment for the second half
+    const newSegment: Task = {
+      ...task,
+      id: uuidv4(),
+      splitGroupId: groupId,
+      startDate: toISODate(addDays(midDate, 1)),
+      endDate: task.endDate,
+      duration: totalDays - midDays - 1,
+      orderIndex: task.orderIndex + 0.001,
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    // Also mark all existing siblings with the groupId (in case this is the first split)
+    const newTasks = tasks.map((t) => {
+      if (t.id === id) return updatedOriginal;
+      if (t.splitGroupId === groupId && groupId !== task.id) return t;
+      return t;
+    });
+    newTasks.push(newSegment);
+
+    set({ tasks: newTasks });
+    get().addAuditEvent('split', 'task', id, task, { original: updatedOriginal, newSegment });
     get().syncActiveProject();
   },
 
@@ -589,7 +669,20 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       result = result.filter((t) => t.tags.some((tag) => filters.tags.includes(tag)));
     }
 
+    // Deduplicate split groups: keep only first segment per group
+    const seenGroups = new Set<string>();
+    result = result.filter((t) => {
+      if (!t.splitGroupId) return true;
+      if (seenGroups.has(t.splitGroupId)) return false;
+      seenGroups.add(t.splitGroupId);
+      return true;
+    });
+
     return result;
+  },
+
+  getSplitSiblings: (splitGroupId) => {
+    return get().tasks.filter((t) => t.splitGroupId === splitGroupId);
   },
 
   getChildTasks: (parentId) => {

@@ -49,14 +49,19 @@ export default function TaskRow({ task, depth }: TaskRowProps) {
   const {
     selectedTaskId,
     hoveredTaskId,
+    tasks,
     selectTask,
     openTaskDetails,
     toggleCollapse,
     setHoveredTask,
   } = useProjectStore();
 
-  const isSelected = selectedTaskId === task.id;
-  const isHovered = hoveredTaskId === task.id;
+  // For split groups, highlight if any segment is selected/hovered
+  const splitIds = task.splitGroupId
+    ? tasks.filter((t) => t.splitGroupId === task.splitGroupId).map((t) => t.id)
+    : [task.id];
+  const isSelected = splitIds.includes(selectedTaskId || '');
+  const isHovered = splitIds.includes(hoveredTaskId || '');
   const isSummary = task.type === 'summary';
   const isMilestone = task.type === 'milestone';
 

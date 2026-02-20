@@ -24,7 +24,7 @@ interface TimelineGridProps {
 }
 
 export default function TimelineGrid({ scrollTop, onScroll }: TimelineGridProps) {
-  const { project, zoom, getVisibleTasks, addNoteMode, setAddNoteMode, theme } = useProjectStore();
+  const { project, zoom, getVisibleTasks, getSplitSiblings, addNoteMode, setAddNoteMode, theme } = useProjectStore();
   const isDark = theme === 'dark';
   const containerRef = useRef<HTMLDivElement>(null);
   const isScrollingSelf = useRef(false);
@@ -174,16 +174,30 @@ export default function TimelineGrid({ scrollTop, onScroll }: TimelineGridProps)
               zoom={zoom}
             />
 
-            {/* Task bars */}
-            {visibleTasks.map((task, i) => (
-              <TaskBar
-                key={task.id}
-                task={task}
-                rowIndex={i}
-                timelineStart={timelineStart}
-                zoom={zoom}
-              />
-            ))}
+            {/* Task bars (render all split segments on the same row) */}
+            {visibleTasks.map((task, i) => {
+              if (task.splitGroupId) {
+                const siblings = getSplitSiblings(task.splitGroupId);
+                return siblings.map((seg) => (
+                  <TaskBar
+                    key={seg.id}
+                    task={seg}
+                    rowIndex={i}
+                    timelineStart={timelineStart}
+                    zoom={zoom}
+                  />
+                ));
+              }
+              return (
+                <TaskBar
+                  key={task.id}
+                  task={task}
+                  rowIndex={i}
+                  timelineStart={timelineStart}
+                  zoom={zoom}
+                />
+              );
+            })}
 
             {/* Today line */}
             <TodayLine

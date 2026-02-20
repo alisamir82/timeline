@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import {
   X,
   Trash2,
+  Scissors,
   Link,
   Diamond,
   ChevronDown,
@@ -90,8 +91,10 @@ export default function TaskDetailsDrawer() {
     customFields,
     customFieldValues,
     closeTaskDetails,
+    openTaskDetails,
     updateTask,
     deleteTask,
+    splitTask,
     addDependency,
     deleteDependency,
     updateCustomFieldValue,
@@ -105,6 +108,11 @@ export default function TaskDetailsDrawer() {
   const task = tasks.find((t) => t.id === selectedTaskId);
 
   if (!showTaskDetails || !task) return null;
+
+  // Get all split siblings for this task
+  const splitSiblings = task.splitGroupId
+    ? tasks.filter((t) => t.splitGroupId === task.splitGroupId).sort((a, b) => a.startDate.localeCompare(b.startDate))
+    : [];
 
   const taskDeps = dependencies.filter(
     (d) => d.predecessorTaskId === task.id || d.successorTaskId === task.id
@@ -132,6 +140,13 @@ export default function TaskDetailsDrawer() {
           <span className="text-sm font-semibold text-gray-700 dark:text-gray-200">Task Details</span>
         </div>
         <div className="flex items-center gap-1">
+          <button
+            onClick={() => splitTask(task.id)}
+            className="p-1.5 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded text-gray-400 dark:text-gray-500 hover:text-blue-500"
+            title="Split task"
+          >
+            <Scissors className="w-4 h-4" />
+          </button>
           <button
             onClick={() => {
               if (confirm('Delete this task?')) {
@@ -214,6 +229,30 @@ export default function TaskDetailsDrawer() {
         <div className="text-xs text-gray-400 dark:text-gray-500">
           Duration: {task.duration} day{task.duration !== 1 ? 's' : ''}
         </div>
+
+        {/* Split segments selector */}
+        {splitSiblings.length > 1 && (
+          <div>
+            <label className="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+              Segments ({splitSiblings.length})
+            </label>
+            <div className="flex flex-wrap gap-1 mt-1">
+              {splitSiblings.map((seg, i) => (
+                <button
+                  key={seg.id}
+                  onClick={() => openTaskDetails(seg.id)}
+                  className={`px-2 py-1 text-xs rounded border transition-all ${
+                    seg.id === task.id
+                      ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-medium'
+                      : 'border-gray-200 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:border-gray-400 dark:hover:border-gray-500'
+                  }`}
+                >
+                  Seg {i + 1}: {seg.startDate} → {seg.endDate}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Owner */}
         <div>

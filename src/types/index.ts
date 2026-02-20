@@ -75,6 +75,7 @@ export interface Task {
   tags: string[];
   orderIndex: number;
   collapsed: boolean; // UI state for summary tasks
+  splitGroupId: string | null; // All segments of a split task share this ID
   createdBy: string;
   createdAt: string;
   updatedAt: string;

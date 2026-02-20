@@ -75,6 +75,7 @@ function buildProjectData(
     tags: [],
     orderIndex: i,
     collapsed: false,
+    splitGroupId: null,
     createdBy,
     createdAt: now,
     updatedAt: now,

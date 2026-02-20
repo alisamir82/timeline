@@ -15,15 +15,25 @@ export default function DependencyLines({
   timelineStart,
   zoom,
 }: DependencyLinesProps) {
-  const { dependencies, hoveredDependencyId, hoveredTaskId, setHoveredDependency, deleteDependency, theme } =
+  const { dependencies, tasks: allTasks, hoveredDependencyId, hoveredTaskId, setHoveredDependency, deleteDependency, theme } =
     useProjectStore();
   const isDark = theme === 'dark';
 
+  // Build index map: map each task ID (including split segments) to its visible row index
   const taskIndexMap = new Map<string, number>();
-  visibleTasks.forEach((t, i) => taskIndexMap.set(t.id, i));
+  visibleTasks.forEach((t, i) => {
+    taskIndexMap.set(t.id, i);
+    // Also map all split siblings to the same row index
+    if (t.splitGroupId) {
+      allTasks.filter((s) => s.splitGroupId === t.splitGroupId).forEach((s) => {
+        taskIndexMap.set(s.id, i);
+      });
+    }
+  });
 
+  // Build task map from all tasks (not just visible) so we can resolve split segments
   const taskMap = new Map<string, Task>();
-  visibleTasks.forEach((t) => taskMap.set(t.id, t));
+  allTasks.forEach((t) => taskMap.set(t.id, t));
 
   return (
     <>
