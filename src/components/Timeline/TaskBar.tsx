@@ -35,6 +35,9 @@ export default function TaskBar({ task, rowIndex, timelineStart, zoom }: TaskBar
   } = useProjectStore();
   const isDark = theme === 'dark';
 
+  // Quality gates render in the header bar, not as timeline bars
+  if (task.type === 'quality_gate') return null;
+
   const isSelected = selectedTaskId === task.id;
   const isHovered = hoveredTaskId === task.id;
 

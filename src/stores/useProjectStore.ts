@@ -135,6 +135,7 @@ interface ProjectState {
 
   // Computed
   getVisibleTasks: () => Task[];
+  getQualityGates: () => Task[];
   getChildTasks: (parentId: string) => Task[];
   getTaskDependencies: (taskId: string) => Dependency[];
   getCustomFieldValuesForTask: (taskId: string) => CustomFieldValue[];
@@ -248,7 +249,8 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     set({ theme });
   },
   toggleTheme: () => {
-    const newTheme = get().theme === 'light' ? 'dark' : 'light';
+    const cycle: Record<string, ThemeMode> = { light: 'dark', dark: 'corporate', corporate: 'light' };
+    const newTheme = cycle[get().theme] || 'light';
     localStorage.setItem('timeline-theme', newTheme);
     set({ theme: newTheme });
   },
@@ -568,7 +570,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   // Computed
   getVisibleTasks: () => {
     const { tasks, filters } = get();
-    let result = [...tasks].sort((a, b) => a.orderIndex - b.orderIndex);
+    let result = [...tasks].filter((t) => t.type !== 'quality_gate').sort((a, b) => a.orderIndex - b.orderIndex);
 
     const collapsedParentIds = new Set(
       tasks.filter((t) => t.type === 'summary' && t.collapsed).map((t) => t.id)
@@ -602,6 +604,10 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     }
 
     return result;
+  },
+
+  getQualityGates: () => {
+    return get().tasks.filter((t) => t.type === 'quality_gate').sort((a, b) => a.orderIndex - b.orderIndex);
   },
 
   getChildTasks: (parentId) => {

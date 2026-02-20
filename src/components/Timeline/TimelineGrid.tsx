@@ -1,5 +1,6 @@
 import React, { useRef, useMemo, useEffect } from 'react';
 import type { ZoomLevel, Task } from '../../types';
+import { CORPORATE_COLORS } from '../../types';
 import { useProjectStore } from '../../stores/useProjectStore';
 import {
   parseISO,
@@ -18,17 +19,22 @@ import DependencyLines from './DependencyLines';
 import TodayLine from './TodayLine';
 import StickyNoteLayer from './StickyNoteLayer';
 
+const QUALITY_GATE_BAR_HEIGHT = 48; // height when quality gates exist
+
 interface TimelineGridProps {
   scrollTop: number;
   onScroll: (scrollTop: number) => void;
 }
 
 export default function TimelineGrid({ scrollTop, onScroll }: TimelineGridProps) {
-  const { project, zoom, getVisibleTasks, addNoteMode, setAddNoteMode, theme } = useProjectStore();
+  const { project, zoom, getVisibleTasks, getQualityGates, addNoteMode, setAddNoteMode, theme, openTaskDetails } = useProjectStore();
   const isDark = theme === 'dark';
+  const isCorp = theme === 'corporate';
   const containerRef = useRef<HTMLDivElement>(null);
   const isScrollingSelf = useRef(false);
   const visibleTasks = getVisibleTasks();
+  const qualityGates = getQualityGates();
+  const gateBarHeight = qualityGates.length > 0 ? QUALITY_GATE_BAR_HEIGHT : COLUMN_HEADER_HEIGHT;
 
   // Sync scroll position from left panel
   useEffect(() => {
@@ -56,7 +62,7 @@ export default function TimelineGrid({ scrollTop, onScroll }: TimelineGridProps)
   const totalHeight = visibleTasks.length * ROW_HEIGHT;
 
   return (
-    <div className={`flex-1 flex flex-col overflow-hidden bg-white dark:bg-gray-900 ${addNoteMode ? 'cursor-crosshair' : ''}`}>
+    <div className={`flex-1 flex flex-col overflow-hidden bg-white dark:bg-gray-900 ${addNoteMode ? 'cursor-crosshair' : ''}`} style={isCorp ? { backgroundColor: '#ffffff' } : undefined}>
       {/* Add-note mode hint */}
       {addNoteMode && (
         <div className="bg-amber-50 dark:bg-amber-900/30 border-b border-amber-200 dark:border-amber-800 px-4 py-1.5 flex items-center justify-between text-xs text-amber-800 dark:text-amber-200">
@@ -78,8 +84,40 @@ export default function TimelineGrid({ scrollTop, onScroll }: TimelineGridProps)
         scrollLeft={0}
       />
 
-      {/* Spacer matching left panel column headers height */}
-      <div className="flex-shrink-0 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800" style={{ height: COLUMN_HEADER_HEIGHT }} />
+      {/* Quality gate bar / column header spacer */}
+      <div
+        className="flex-shrink-0 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 relative overflow-hidden"
+        style={{ height: gateBarHeight, ...(isCorp ? { backgroundColor: CORPORATE_COLORS.barBg, borderColor: CORPORATE_COLORS.barBorder } : {}) }}
+      >
+        {/* Quality gate stars positioned by date */}
+        {qualityGates.map((gate) => {
+          const x = dateToPixelOffset(parseISO(gate.startDate), timelineStart, zoom);
+          return (
+            <div
+              key={gate.id}
+              className="absolute flex flex-col items-center cursor-pointer group"
+              style={{ left: x - 12, top: 2, width: 24 }}
+              onClick={() => openTaskDetails(gate.id)}
+              title={`${gate.title} - ${gate.startDate}`}
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" className="flex-shrink-0">
+                <polygon
+                  points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"
+                  fill={gate.color || '#f59e0b'}
+                  stroke={isCorp || isDark ? '#ffffff' : '#374151'}
+                  strokeWidth="0.5"
+                />
+              </svg>
+              <span
+                className="text-[8px] font-medium leading-tight text-center truncate max-w-[48px]"
+                style={{ color: isCorp || isDark ? '#cbd5e1' : '#374151' }}
+              >
+                {gate.title}
+              </span>
+            </div>
+          );
+        })}
+      </div>
 
       {/* Scrollable body */}
       <div

@@ -9,6 +9,7 @@ import ProjectModal from './components/ProjectManager/ProjectModal';
 import { useProjectStore } from './stores/useProjectStore';
 import { exportPNG, exportPDF, exportCSV } from './components/Export/exportUtils';
 import { LEFT_PANEL_DEFAULT_WIDTH } from './utils/dates';
+import { CORPORATE_COLORS } from './types';
 
 // File System Access API types
 interface FileSystemWritableFileStream {
@@ -39,6 +40,7 @@ export default function App() {
   // Apply theme class to document
   useEffect(() => {
     document.documentElement.classList.toggle('dark', theme === 'dark');
+    document.documentElement.classList.toggle('corporate', theme === 'corporate');
   }, [theme]);
 
   // Auto-save to localStorage
@@ -248,6 +250,7 @@ export default function App() {
 
   return (
     <div className="h-screen flex flex-col overflow-hidden bg-white dark:bg-gray-900">
+
       {/* Hidden file input for loading */}
       <input
         ref={fileInputRef}
@@ -301,7 +304,10 @@ export default function App() {
       )}
 
       {/* Status bar */}
-      <div className="h-6 bg-gray-50 dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 flex items-center px-4 text-[10px] text-gray-400 gap-4">
+      <div
+        className="h-6 bg-gray-50 dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 flex items-center px-4 text-[10px] text-gray-400 gap-4"
+        style={theme === 'corporate' ? { backgroundColor: CORPORATE_COLORS.barBg, borderColor: CORPORATE_COLORS.barBorder, color: CORPORATE_COLORS.barTextMuted } : undefined}
+      >
         <span>{tasks.length} tasks</span>
         <span>Logged in as: {currentUser.name} ({currentUser.role})</span>
         {autoSave && <span className="text-blue-500">Auto-save ON</span>}

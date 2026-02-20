@@ -1,5 +1,7 @@
 import React from 'react';
 import type { ZoomLevel } from '../../types';
+import { CORPORATE_COLORS } from '../../types';
+import { useProjectStore } from '../../stores/useProjectStore';
 import {
   getTimelineUnits,
   formatUnitLabel,
@@ -22,6 +24,8 @@ export default function TimelineHeader({
   zoom,
   scrollLeft,
 }: TimelineHeaderProps) {
+  const { theme } = useProjectStore();
+  const isCorp = theme === 'corporate';
   const units = getTimelineUnits(startDate, endDate, zoom);
   const colWidth = COLUMN_WIDTHS[zoom];
 
@@ -40,15 +44,15 @@ export default function TimelineHeader({
   return (
     <div
       className="sticky top-0 z-20 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700"
-      style={{ height: HEADER_HEIGHT }}
+      style={{ height: HEADER_HEIGHT, ...(isCorp ? { backgroundColor: CORPORATE_COLORS.barBg, borderColor: CORPORATE_COLORS.barBorder } : {}) }}
     >
       {/* Top row: grouped headers */}
-      <div className="flex h-1/2 border-b border-gray-100 dark:border-gray-700">
+      <div className="flex h-1/2 border-b border-gray-100 dark:border-gray-700" style={isCorp ? { borderColor: CORPORATE_COLORS.barBorder } : undefined}>
         {Array.from(groups.values()).map((group, i) => (
           <div
             key={i}
-            className="flex items-center justify-center text-xs font-semibold text-gray-600 dark:text-gray-300 border-r border-gray-100 dark:border-gray-700"
-            style={{ width: group.count * colWidth }}
+            className={`flex items-center justify-center text-xs font-semibold border-r ${isCorp ? 'text-slate-200' : 'text-gray-600 dark:text-gray-300 border-gray-100 dark:border-gray-700'}`}
+            style={{ width: group.count * colWidth, ...(isCorp ? { borderColor: CORPORATE_COLORS.barBorder } : {}) }}
           >
             {group.label}
           </div>
@@ -62,10 +66,12 @@ export default function TimelineHeader({
           return (
             <div
               key={i}
-              className={`flex items-center justify-center text-[11px] border-r border-gray-100 dark:border-gray-700
-                ${weekend ? 'bg-gray-50 dark:bg-gray-800 text-gray-400' : 'text-gray-500 dark:text-gray-400'}
-              `}
-              style={{ width: colWidth, minWidth: colWidth }}
+              className={`flex items-center justify-center text-[11px] border-r ${
+                isCorp
+                  ? weekend ? 'text-slate-400 bg-slate-800' : 'text-slate-300'
+                  : `border-gray-100 dark:border-gray-700 ${weekend ? 'bg-gray-50 dark:bg-gray-800 text-gray-400' : 'text-gray-500 dark:text-gray-400'}`
+              }`}
+              style={{ width: colWidth, minWidth: colWidth, ...(isCorp ? { borderColor: CORPORATE_COLORS.barBorder } : {}) }}
             >
               {formatUnitLabel(unit, zoom)}
             </div>

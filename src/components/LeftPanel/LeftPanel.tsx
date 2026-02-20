@@ -1,6 +1,7 @@
 import React, { useRef, useEffect } from 'react';
 import { Plus, Search } from 'lucide-react';
 import { useProjectStore } from '../../stores/useProjectStore';
+import { CORPORATE_COLORS } from '../../types';
 import TaskRow from './TaskRow';
 import { HEADER_HEIGHT, ROW_HEIGHT, COLUMN_HEADER_HEIGHT } from '../../utils/dates';
 
@@ -12,7 +13,10 @@ interface LeftPanelProps {
 }
 
 export default function LeftPanel({ width, onResize, scrollTop, onScroll }: LeftPanelProps) {
-  const { getVisibleTasks, tasks, addTask, filters, setFilters } = useProjectStore();
+  const { getVisibleTasks, getQualityGates, tasks, addTask, filters, setFilters, theme } = useProjectStore();
+  const isCorp = theme === 'corporate';
+  const qualityGates = getQualityGates();
+  const colHeaderHeight = qualityGates.length > 0 ? 48 : COLUMN_HEADER_HEIGHT;
   const visibleTasks = getVisibleTasks();
   const listRef = useRef<HTMLDivElement>(null);
   const resizeRef = useRef<{ startX: number; startWidth: number } | null>(null);
@@ -49,18 +53,25 @@ export default function LeftPanel({ width, onResize, scrollTop, onScroll }: Left
   }
 
   return (
-    <div className="flex flex-col border-r border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 relative" style={{ width }}>
+    <div
+      className="flex flex-col border-r border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 relative"
+      style={{ width, ...(isCorp ? { borderColor: CORPORATE_COLORS.barBorder } : {}) }}
+    >
       {/* Header */}
       <div
         className="flex items-center px-3 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 gap-2 flex-shrink-0"
-        style={{ height: HEADER_HEIGHT }}
+        style={{ height: HEADER_HEIGHT, ...(isCorp ? { backgroundColor: CORPORATE_COLORS.barBg, borderColor: CORPORATE_COLORS.barBorder } : {}) }}
       >
-        <div className="flex-1 flex items-center bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded px-2 py-1">
+        <div
+          className="flex-1 flex items-center bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded px-2 py-1"
+          style={isCorp ? { backgroundColor: CORPORATE_COLORS.barHover, borderColor: CORPORATE_COLORS.barBorder } : undefined}
+        >
           <Search className="w-3.5 h-3.5 text-gray-400 dark:text-gray-500 mr-1.5" />
           <input
             type="text"
             placeholder="Search tasks..."
             className="text-sm w-full outline-none bg-transparent dark:text-gray-100"
+            style={isCorp ? { color: CORPORATE_COLORS.barText } : undefined}
             value={filters.searchText}
             onChange={(e) => setFilters({ searchText: e.target.value })}
           />
@@ -75,7 +86,10 @@ export default function LeftPanel({ width, onResize, scrollTop, onScroll }: Left
       </div>
 
       {/* Column headers */}
-      <div className="flex items-center px-3 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider flex-shrink-0" style={{ height: COLUMN_HEADER_HEIGHT }}>
+      <div
+        className="flex items-center px-3 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider flex-shrink-0"
+        style={{ height: colHeaderHeight, ...(isCorp ? { backgroundColor: CORPORATE_COLORS.barBg, borderColor: CORPORATE_COLORS.barBorder, color: CORPORATE_COLORS.barTextMuted } : {}) }}
+      >
         <span className="flex-1 pl-8">Task</span>
         <span className="w-20 mr-2">Owner</span>
         <span className="w-20 mr-2">Status</span>

@@ -3,6 +3,7 @@ import {
   ChevronRight,
   ChevronDown,
   Diamond,
+  Star,
   FolderOpen,
   GripVertical,
   MessageSquare,

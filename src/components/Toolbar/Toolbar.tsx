@@ -14,11 +14,13 @@ import {
   StickyNote,
   Moon,
   Sun,
+  Building2,
   HardDriveDownload,
   ToggleLeft,
   ToggleRight,
 } from 'lucide-react';
 import type { ZoomLevel } from '../../types';
+import { CORPORATE_COLORS } from '../../types';
 import { useProjectStore } from '../../stores/useProjectStore';
 
 interface ToolbarProps {
@@ -51,6 +53,7 @@ export default function Toolbar({
   filtersVisible,
 }: ToolbarProps) {
   const { project, zoom, setZoom, addTask, addNoteMode, setAddNoteMode, theme, toggleTheme, autoSave, setAutoSave } = useProjectStore();
+  const isCorp = theme === 'corporate';
   const [exportOpen, setExportOpen] = useState(false);
   const [saveOpen, setSaveOpen] = useState(false);
   const exportRef = useRef<HTMLDivElement>(null);
@@ -83,11 +86,16 @@ export default function Toolbar({
   }, [exportOpen, saveOpen]);
 
   return (
-    <div className="h-12 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 flex items-center px-4 gap-2">
+    <div
+      className="h-12 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 flex items-center px-4 gap-2"
+      style={theme === 'corporate' ? { backgroundColor: CORPORATE_COLORS.barBg, borderColor: CORPORATE_COLORS.barBorder } : undefined}
+    >
       {/* Project name - clickable */}
       <button
         onClick={onProjectClick}
-        className="flex items-center gap-1.5 text-base font-semibold text-gray-800 dark:text-gray-100 mr-2 truncate max-w-56 hover:bg-gray-100 dark:hover:bg-gray-800 px-2 py-1 rounded transition-colors"
+        className={`flex items-center gap-1.5 text-base font-semibold mr-2 truncate max-w-56 px-2 py-1 rounded transition-colors ${
+          isCorp ? 'text-white hover:bg-slate-700' : 'text-gray-800 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800'
+        }`}
         title="Manage projects"
       >
         <FolderOpen className="w-4 h-4 text-blue-500 flex-shrink-0" />
@@ -95,7 +103,7 @@ export default function Toolbar({
         <ChevronDown className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
       </button>
 
-      <div className="h-6 w-px bg-gray-200 dark:bg-gray-700" />
+      <div className="h-6 w-px bg-gray-200 dark:bg-gray-700" style={isCorp ? { backgroundColor: CORPORATE_COLORS.barBorder } : undefined} />
 
       {/* Add task */}
       <button
@@ -112,7 +120,7 @@ export default function Toolbar({
         className={`flex items-center gap-1.5 px-2.5 py-1.5 text-sm rounded transition-colors ${
           addNoteMode
             ? 'bg-amber-100 text-amber-700 ring-1 ring-amber-300 dark:bg-amber-900/40 dark:text-amber-300 dark:ring-amber-600'
-            : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
+            : isCorp ? 'text-slate-300 hover:bg-slate-700' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
         }`}
         title={addNoteMode ? 'Cancel adding note' : 'Add a sticky note to a task'}
       >
@@ -120,28 +128,28 @@ export default function Toolbar({
         Note
       </button>
 
-      <div className="h-6 w-px bg-gray-200 dark:bg-gray-700" />
+      <div className="h-6 w-px bg-gray-200 dark:bg-gray-700" style={isCorp ? { backgroundColor: CORPORATE_COLORS.barBorder } : undefined} />
 
       {/* Zoom controls */}
       <div className="flex items-center gap-1">
         <button
           onClick={zoomIn}
           disabled={currentIndex === 0}
-          className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-30 disabled:cursor-not-allowed"
+          className={`p-1.5 rounded disabled:opacity-30 disabled:cursor-not-allowed ${isCorp ? 'hover:bg-slate-700' : 'hover:bg-gray-100 dark:hover:bg-gray-800'}`}
           title="Zoom in"
         >
-          <ZoomIn className="w-4 h-4 text-gray-600 dark:text-gray-300" />
+          <ZoomIn className={`w-4 h-4 ${isCorp ? 'text-slate-300' : 'text-gray-600 dark:text-gray-300'}`} />
         </button>
 
-        <div className="flex bg-gray-100 dark:bg-gray-800 rounded p-0.5">
+        <div className={`flex rounded p-0.5 ${isCorp ? 'bg-slate-700' : 'bg-gray-100 dark:bg-gray-800'}`}>
           {ZOOM_LEVELS.map((z) => (
             <button
               key={z}
               onClick={() => setZoom(z)}
               className={`px-2 py-1 text-xs rounded transition-colors ${
                 zoom === z
-                  ? 'bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-sm font-medium'
-                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+                  ? isCorp ? 'bg-slate-600 text-blue-300 shadow-sm font-medium' : 'bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-sm font-medium'
+                  : isCorp ? 'text-slate-400 hover:text-slate-200' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
               }`}
             >
               {ZOOM_LABELS[z]}
@@ -152,16 +160,16 @@ export default function Toolbar({
         <button
           onClick={zoomOut}
           disabled={currentIndex === ZOOM_LEVELS.length - 1}
-          className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-30 disabled:cursor-not-allowed"
+          className={`p-1.5 rounded disabled:opacity-30 disabled:cursor-not-allowed ${isCorp ? 'hover:bg-slate-700' : 'hover:bg-gray-100 dark:hover:bg-gray-800'}`}
           title="Zoom out"
         >
-          <ZoomOut className="w-4 h-4 text-gray-600 dark:text-gray-300" />
+          <ZoomOut className={`w-4 h-4 ${isCorp ? 'text-slate-300' : 'text-gray-600 dark:text-gray-300'}`} />
         </button>
       </div>
 
       {/* Today button */}
       <button
-        className="flex items-center gap-1 px-2 py-1.5 text-xs text-gray-600 dark:text-gray-300 rounded hover:bg-gray-100 dark:hover:bg-gray-800"
+        className={`flex items-center gap-1 px-2 py-1.5 text-xs rounded ${isCorp ? 'text-slate-300 hover:bg-slate-700' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'}`}
         title="Jump to today"
       >
         <Calendar className="w-3.5 h-3.5" />
@@ -174,22 +182,25 @@ export default function Toolbar({
       <button
         onClick={toggleTheme}
         className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-        title={theme === 'light' ? 'Switch to dark mode' : 'Switch to light mode'}
+        style={theme === 'corporate' ? { color: CORPORATE_COLORS.barText } : undefined}
+        title={theme === 'light' ? 'Switch to dark mode' : theme === 'dark' ? 'Switch to corporate mode' : 'Switch to light mode'}
       >
         {theme === 'light' ? (
           <Moon className="w-4 h-4 text-gray-600" />
+        ) : theme === 'dark' ? (
+          <Building2 className="w-4 h-4 text-blue-400" />
         ) : (
           <Sun className="w-4 h-4 text-yellow-400" />
         )}
       </button>
 
-      <div className="h-6 w-px bg-gray-200 dark:bg-gray-700" />
+      <div className="h-6 w-px bg-gray-200 dark:bg-gray-700" style={isCorp ? { backgroundColor: CORPORATE_COLORS.barBorder } : undefined} />
 
       {/* Save dropdown */}
       <div className="relative" ref={saveRef}>
         <button
           onClick={() => setSaveOpen(!saveOpen)}
-          className="flex items-center gap-1 px-2 py-1.5 text-xs text-gray-600 dark:text-gray-300 rounded hover:bg-gray-100 dark:hover:bg-gray-800"
+          className={`flex items-center gap-1 px-2 py-1.5 text-xs rounded ${isCorp ? 'text-slate-300 hover:bg-slate-700' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'}`}
           title="Save project"
         >
           <Save className="w-3.5 h-3.5" />
@@ -240,7 +251,7 @@ export default function Toolbar({
         )}
       </div>
 
-      <div className="h-6 w-px bg-gray-200 dark:bg-gray-700" />
+      <div className="h-6 w-px bg-gray-200 dark:bg-gray-700" style={isCorp ? { backgroundColor: CORPORATE_COLORS.barBorder } : undefined} />
 
       {/* Filter toggle */}
       <button
@@ -248,7 +259,7 @@ export default function Toolbar({
         className={`flex items-center gap-1 px-2 py-1.5 text-xs rounded transition-colors ${
           filtersVisible
             ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400'
-            : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
+            : isCorp ? 'text-slate-300 hover:bg-slate-700' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
         }`}
       >
         <Filter className="w-3.5 h-3.5" />
@@ -258,7 +269,7 @@ export default function Toolbar({
       {/* Audit log */}
       <button
         onClick={onToggleAuditLog}
-        className="flex items-center gap-1 px-2 py-1.5 text-xs text-gray-600 dark:text-gray-300 rounded hover:bg-gray-100 dark:hover:bg-gray-800"
+        className={`flex items-center gap-1 px-2 py-1.5 text-xs rounded ${isCorp ? 'text-slate-300 hover:bg-slate-700' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'}`}
         title="Activity log"
       >
         <History className="w-3.5 h-3.5" />
@@ -269,7 +280,7 @@ export default function Toolbar({
       <div className="relative" ref={exportRef}>
         <button
           onClick={() => setExportOpen(!exportOpen)}
-          className="flex items-center gap-1 px-2 py-1.5 text-xs text-gray-600 dark:text-gray-300 rounded hover:bg-gray-100 dark:hover:bg-gray-800"
+          className={`flex items-center gap-1 px-2 py-1.5 text-xs rounded ${isCorp ? 'text-slate-300 hover:bg-slate-700' : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'}`}
         >
           <Download className="w-3.5 h-3.5" />
           Export

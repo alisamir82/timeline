@@ -4,9 +4,18 @@
 
 export type ZoomLevel = 'day' | 'week' | 'month' | 'quarter';
 
-export type ThemeMode = 'light' | 'dark';
+export type ThemeMode = 'light' | 'dark' | 'corporate';
 
-export type TaskType = 'task' | 'milestone' | 'summary';
+export type TaskType = 'task' | 'milestone' | 'summary' | 'quality_gate';
+
+// Corporate theme colors
+export const CORPORATE_COLORS = {
+  barBg: '#1e293b',
+  barBorder: '#334155',
+  barText: '#f1f5f9',
+  barTextMuted: '#94a3b8',
+  barHover: '#334155',
+};
 
 export type RAGStatus = 'red' | 'amber' | 'green' | 'none';
 

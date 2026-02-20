@@ -4,6 +4,7 @@ import {
   Trash2,
   Link,
   Diamond,
+  Star,
   ChevronDown,
   Plus,
 } from 'lucide-react';
@@ -112,9 +113,9 @@ export default function TaskDetailsDrawer() {
   const fieldValues = getCustomFieldValuesForTask(task.id);
 
   const handleFieldChange = (field: string, value: unknown) => {
-    // When changing type to milestone, sync endDate = startDate, duration = 0
-    if (field === 'type' && value === 'milestone') {
-      updateTask(task.id, { type: 'milestone', endDate: task.startDate, duration: 0 });
+    // When changing type to milestone or quality_gate, sync endDate = startDate, duration = 0
+    if (field === 'type' && (value === 'milestone' || value === 'quality_gate')) {
+      updateTask(task.id, { type: value as 'milestone' | 'quality_gate', endDate: task.startDate, duration: 0 });
       return;
     }
     updateTask(task.id, { [field]: value });
@@ -134,7 +135,10 @@ export default function TaskDetailsDrawer() {
       <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
         <div className="flex items-center gap-2">
           {task.type === 'milestone' && <Diamond className="w-4 h-4 text-purple-500" />}
-          <span className="text-sm font-semibold text-gray-700 dark:text-gray-200">Task Details</span>
+          {task.type === 'quality_gate' && <Star className="w-4 h-4 text-amber-500" />}
+          <span className="text-sm font-semibold text-gray-700 dark:text-gray-200">
+            {task.type === 'quality_gate' ? 'Quality Gate' : 'Task Details'}
+          </span>
         </div>
         <div className="flex items-center gap-1">
           <button
@@ -186,11 +190,12 @@ export default function TaskDetailsDrawer() {
             <option value="task">Task</option>
             <option value="milestone">Milestone</option>
             <option value="summary">Summary</option>
+            <option value="quality_gate">Quality Gate</option>
           </select>
         </div>
 
         {/* Dates */}
-        {task.type === 'milestone' ? (
+        {(task.type === 'milestone' || task.type === 'quality_gate') ? (
           <div>
             <label className="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
               Date
