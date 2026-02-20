@@ -40,7 +40,7 @@ export default function TimelineHeader({
 
   return (
     <div
-      className="sticky top-0 z-20 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700"
+      className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700"
       style={{ height: HEADER_HEIGHT }}
     >
       {/* Top row: grouped headers */}

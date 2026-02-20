@@ -137,6 +137,7 @@ interface ProjectState {
 
   // Computed
   getVisibleTasks: () => Task[];
+  getQualityGates: () => Task[];
   getSplitSiblings: (splitGroupId: string) => Task[];
   getChildTasks: (parentId: string) => Task[];
   getTaskDependencies: (taskId: string) => Dependency[];
@@ -783,6 +784,9 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       result = result.filter((t) => t.tags.some((tag) => filters.tags.includes(tag)));
     }
 
+    // Exclude quality gates from task rows (they render in the header bar)
+    result = result.filter((t) => t.type !== 'quality_gate');
+
     // Deduplicate split groups: keep only first segment per group
     const seenGroups = new Set<string>();
     result = result.filter((t) => {
@@ -793,6 +797,11 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     });
 
     return result;
+  },
+
+  getQualityGates: () => {
+    const { tasks } = get();
+    return tasks.filter((t) => t.type === 'quality_gate').sort((a, b) => a.orderIndex - b.orderIndex);
   },
 
   getSplitSiblings: (splitGroupId) => {

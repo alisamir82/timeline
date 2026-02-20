@@ -1,4 +1,4 @@
-import React, { useRef, useMemo, useEffect } from 'react';
+import React, { useRef, useMemo, useEffect, useState } from 'react';
 import type { ZoomLevel, Task } from '../../types';
 import { useProjectStore } from '../../stores/useProjectStore';
 import {
@@ -9,6 +9,7 @@ import {
   ROW_HEIGHT,
   HEADER_HEIGHT,
   COLUMN_HEADER_HEIGHT,
+  QUALITY_GATE_BAR_HEIGHT,
   isWeekend,
   dateToPixelOffset,
 } from '../../utils/dates';
@@ -16,6 +17,7 @@ import TimelineHeader from './TimelineHeader';
 import TaskBar from './TaskBar';
 import DependencyLines from './DependencyLines';
 import TodayLine from './TodayLine';
+import QualityGateBar from './QualityGateBar';
 import StickyNoteLayer from './StickyNoteLayer';
 
 interface TimelineGridProps {
@@ -24,13 +26,16 @@ interface TimelineGridProps {
 }
 
 export default function TimelineGrid({ scrollTop, onScroll }: TimelineGridProps) {
-  const { project, zoom, getVisibleTasks, getSplitSiblings, addNoteMode, setAddNoteMode, theme } = useProjectStore();
+  const { project, zoom, getVisibleTasks, getQualityGates, getSplitSiblings, addNoteMode, setAddNoteMode, theme } = useProjectStore();
   const isDark = theme === 'dark';
   const containerRef = useRef<HTMLDivElement>(null);
   const isScrollingSelf = useRef(false);
+  const headerRef = useRef<HTMLDivElement>(null);
   const visibleTasks = getVisibleTasks();
+  const qualityGates = getQualityGates();
+  const hasGates = qualityGates.length > 0;
 
-  // Sync scroll position from left panel
+  // Sync vertical scroll position from left panel
   useEffect(() => {
     if (containerRef.current && !isScrollingSelf.current) {
       containerRef.current.scrollTop = scrollTop;
@@ -55,6 +60,12 @@ export default function TimelineGrid({ scrollTop, onScroll }: TimelineGridProps)
   const totalWidth = units.length * colWidth;
   const totalHeight = visibleTasks.length * ROW_HEIGHT;
 
+  // Track horizontal scroll to sync header/gate bar
+  const [hScrollLeft, setHScrollLeft] = useState(0);
+
+  const gateBarHeight = hasGates ? QUALITY_GATE_BAR_HEIGHT : 0;
+  const todayX = dateToPixelOffset(new Date(), timelineStart, zoom);
+
   return (
     <div className={`flex-1 flex flex-col overflow-hidden bg-white dark:bg-gray-900 ${addNoteMode ? 'cursor-crosshair' : ''}`}>
       {/* Add-note mode hint */}
@@ -70,13 +81,42 @@ export default function TimelineGrid({ scrollTop, onScroll }: TimelineGridProps)
         </div>
       )}
 
-      {/* Sticky timeline header */}
-      <TimelineHeader
-        startDate={timelineStart}
-        endDate={timelineEnd}
-        zoom={zoom}
-        scrollLeft={0}
-      />
+      {/* Fixed header area (scrolls horizontally in sync, stays pinned vertically) */}
+      <div ref={headerRef} className="flex-shrink-0 overflow-hidden">
+        <div style={{ transform: `translateX(${-hScrollLeft}px)`, width: totalWidth }}>
+          {/* Timeline date header */}
+          <TimelineHeader
+            startDate={timelineStart}
+            endDate={timelineEnd}
+            zoom={zoom}
+            scrollLeft={hScrollLeft}
+          />
+
+          {/* Quality Gate bar */}
+          {hasGates && (
+            <div className="relative border-b border-gray-200 dark:border-gray-700 bg-amber-50/30 dark:bg-amber-900/10" style={{ height: QUALITY_GATE_BAR_HEIGHT }}>
+              <QualityGateBar
+                gates={qualityGates}
+                timelineStart={timelineStart}
+                zoom={zoom}
+                totalWidth={totalWidth}
+              />
+              {/* Today line through the gate bar */}
+              <svg width={totalWidth} height={QUALITY_GATE_BAR_HEIGHT} className="absolute top-0 left-0" style={{ pointerEvents: 'none' }}>
+                <line
+                  x1={todayX}
+                  y1={0}
+                  x2={todayX}
+                  y2={QUALITY_GATE_BAR_HEIGHT}
+                  stroke="#ef4444"
+                  strokeWidth={1.5}
+                  strokeDasharray="4 2"
+                />
+              </svg>
+            </div>
+          )}
+        </div>
+      </div>
 
       {/* Spacer matching left panel column headers height */}
       <div className="flex-shrink-0 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800" style={{ height: COLUMN_HEADER_HEIGHT }} />
@@ -89,6 +129,7 @@ export default function TimelineGrid({ scrollTop, onScroll }: TimelineGridProps)
           isScrollingSelf.current = true;
           const el = e.target as HTMLElement;
           onScroll(el.scrollTop);
+          setHScrollLeft(el.scrollLeft);
           requestAnimationFrame(() => { isScrollingSelf.current = false; });
         }}
       >
