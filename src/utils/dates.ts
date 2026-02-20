@@ -108,8 +108,10 @@ export function formatUnitLabel(date: Date, zoom: ZoomLevel): string {
 
 export function formatHeaderLabel(date: Date, zoom: ZoomLevel): string {
   switch (zoom) {
-    case 'day':
-      return format(date, 'MMM yyyy');
+    case 'day': {
+      const monday = startOfWeek(date, { weekStartsOn: 1 });
+      return `w/c ${format(monday, 'dd MMM')}`;
+    }
     case 'week':
       return format(date, 'MMM yyyy');
     case 'month':
