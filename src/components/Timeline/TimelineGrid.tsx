@@ -17,7 +17,6 @@ import TimelineHeader from './TimelineHeader';
 import TaskBar from './TaskBar';
 import DependencyLines from './DependencyLines';
 import TodayLine from './TodayLine';
-import QualityGateBar from './QualityGateBar';
 import StickyNoteLayer from './StickyNoteLayer';
 
 interface TimelineGridProps {
@@ -30,7 +29,6 @@ export default function TimelineGrid({ scrollTop, onScroll }: TimelineGridProps)
   const isDark = theme === 'dark';
   const containerRef = useRef<HTMLDivElement>(null);
   const isScrollingSelf = useRef(false);
-  const headerRef = useRef<HTMLDivElement>(null);
   const visibleTasks = getVisibleTasks();
   const qualityGates = getQualityGates();
   const hasGates = qualityGates.length > 0;
@@ -60,10 +58,11 @@ export default function TimelineGrid({ scrollTop, onScroll }: TimelineGridProps)
   const totalWidth = units.length * colWidth;
   const totalHeight = visibleTasks.length * ROW_HEIGHT;
 
-  // Track horizontal scroll to sync header/gate bar
+  // Track horizontal scroll to sync header
   const [hScrollLeft, setHScrollLeft] = useState(0);
 
-  const gateBarHeight = hasGates ? QUALITY_GATE_BAR_HEIGHT : 0;
+  // Dynamic header height: expands when quality gates exist
+  const headerHeight = HEADER_HEIGHT + (hasGates ? QUALITY_GATE_BAR_HEIGHT : 0);
   const todayX = dateToPixelOffset(new Date(), timelineStart, zoom);
 
   return (
@@ -82,39 +81,16 @@ export default function TimelineGrid({ scrollTop, onScroll }: TimelineGridProps)
       )}
 
       {/* Fixed header area (scrolls horizontally in sync, stays pinned vertically) */}
-      <div ref={headerRef} className="flex-shrink-0 overflow-hidden">
+      <div className="flex-shrink-0 overflow-hidden">
         <div style={{ transform: `translateX(${-hScrollLeft}px)`, width: totalWidth }}>
-          {/* Timeline date header */}
           <TimelineHeader
             startDate={timelineStart}
             endDate={timelineEnd}
             zoom={zoom}
             scrollLeft={hScrollLeft}
+            gates={qualityGates}
+            todayX={todayX}
           />
-
-          {/* Quality Gate bar */}
-          {hasGates && (
-            <div className="relative border-b border-gray-200 dark:border-gray-700 bg-amber-50/30 dark:bg-amber-900/10" style={{ height: QUALITY_GATE_BAR_HEIGHT }}>
-              <QualityGateBar
-                gates={qualityGates}
-                timelineStart={timelineStart}
-                zoom={zoom}
-                totalWidth={totalWidth}
-              />
-              {/* Today line through the gate bar */}
-              <svg width={totalWidth} height={QUALITY_GATE_BAR_HEIGHT} className="absolute top-0 left-0" style={{ pointerEvents: 'none' }}>
-                <line
-                  x1={todayX}
-                  y1={0}
-                  x2={todayX}
-                  y2={QUALITY_GATE_BAR_HEIGHT}
-                  stroke="#ef4444"
-                  strokeWidth={1.5}
-                  strokeDasharray="4 2"
-                />
-              </svg>
-            </div>
-          )}
         </div>
       </div>
 
@@ -240,7 +216,7 @@ export default function TimelineGrid({ scrollTop, onScroll }: TimelineGridProps)
               );
             })}
 
-            {/* Today line */}
+            {/* Today line (vertical dashed line only, marker is in header) */}
             <TodayLine
               timelineStart={timelineStart}
               zoom={zoom}

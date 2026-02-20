@@ -74,39 +74,36 @@ export default function LeftPanel({ width, onResize, scrollTop, onScroll }: Left
 
   return (
     <div className="flex flex-col border-r border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 relative" style={{ width }}>
-      {/* Header */}
+      {/* Header - expands when quality gates exist to match the timeline header */}
       <div
-        className="flex items-center px-3 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 gap-2 flex-shrink-0"
-        style={{ height: HEADER_HEIGHT }}
+        className="flex flex-col border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 flex-shrink-0"
+        style={{ height: HEADER_HEIGHT + (hasGates ? QUALITY_GATE_BAR_HEIGHT : 0) }}
       >
-        <div className="flex-1 flex items-center bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded px-2 py-1">
-          <Search className="w-3.5 h-3.5 text-gray-400 dark:text-gray-500 mr-1.5" />
-          <input
-            type="text"
-            placeholder="Search tasks..."
-            className="text-sm w-full outline-none bg-transparent dark:text-gray-100"
-            value={filters.searchText}
-            onChange={(e) => setFilters({ searchText: e.target.value })}
-          />
+        <div className="flex items-center px-3 gap-2 flex-1">
+          <div className="flex-1 flex items-center bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded px-2 py-1">
+            <Search className="w-3.5 h-3.5 text-gray-400 dark:text-gray-500 mr-1.5" />
+            <input
+              type="text"
+              placeholder="Search tasks..."
+              className="text-sm w-full outline-none bg-transparent dark:text-gray-100"
+              value={filters.searchText}
+              onChange={(e) => setFilters({ searchText: e.target.value })}
+            />
+          </div>
+          <button
+            onClick={() => addTask({})}
+            className="p-1.5 bg-blue-600 text-white rounded hover:bg-blue-700 flex-shrink-0"
+            title="Add task"
+          >
+            <Plus className="w-4 h-4" />
+          </button>
         </div>
-        <button
-          onClick={() => addTask({})}
-          className="p-1.5 bg-blue-600 text-white rounded hover:bg-blue-700 flex-shrink-0"
-          title="Add task"
-        >
-          <Plus className="w-4 h-4" />
-        </button>
+        {hasGates && (
+          <div className="flex items-center px-3 pb-1">
+            <span className="text-[10px] font-medium text-amber-600 dark:text-amber-400 uppercase tracking-wider">Quality Gates</span>
+          </div>
+        )}
       </div>
-
-      {/* Quality Gate spacer (matches timeline's QualityGateBar) */}
-      {hasGates && (
-        <div
-          className="flex-shrink-0 border-b border-gray-200 dark:border-gray-700 bg-amber-50/50 dark:bg-amber-900/10 flex items-center px-3"
-          style={{ height: QUALITY_GATE_BAR_HEIGHT }}
-        >
-          <span className="text-[10px] font-medium text-amber-600 dark:text-amber-400 uppercase tracking-wider">Quality Gates</span>
-        </div>
-      )}
 
       {/* Column headers */}
       <div className="flex items-center px-3 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider flex-shrink-0" style={{ height: COLUMN_HEADER_HEIGHT }}>
