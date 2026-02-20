@@ -51,7 +51,7 @@ export const COLUMN_WIDTHS: Record<ZoomLevel, number> = {
 export const ROW_HEIGHT = 40;
 export const HEADER_HEIGHT = 60;
 export const COLUMN_HEADER_HEIGHT = 26;
-export const QUALITY_GATE_BAR_HEIGHT = 22;
+export const QUALITY_GATE_BAR_HEIGHT = 36;
 export const LEFT_PANEL_DEFAULT_WIDTH = 420;
 
 export function getTimelineUnits(
