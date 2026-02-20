@@ -404,6 +404,7 @@ export const sampleDependencies: Dependency[] = [
     successorTaskId: t3,
     type: 'FS',
     lagDays: 0,
+    waypoints: [],
     createdAt: toISO(today),
   },
   {
@@ -413,6 +414,7 @@ export const sampleDependencies: Dependency[] = [
     successorTaskId: t4,
     type: 'FS',
     lagDays: 0,
+    waypoints: [],
     createdAt: toISO(today),
   },
   {
@@ -422,6 +424,7 @@ export const sampleDependencies: Dependency[] = [
     successorTaskId: t6,
     type: 'FS',
     lagDays: 0,
+    waypoints: [],
     createdAt: toISO(today),
   },
   {
@@ -431,6 +434,7 @@ export const sampleDependencies: Dependency[] = [
     successorTaskId: t7,
     type: 'FS',
     lagDays: 0,
+    waypoints: [],
     createdAt: toISO(today),
   },
   {
@@ -440,6 +444,7 @@ export const sampleDependencies: Dependency[] = [
     successorTaskId: t8,
     type: 'FS',
     lagDays: 0,
+    waypoints: [],
     createdAt: toISO(today),
   },
   {
@@ -449,6 +454,7 @@ export const sampleDependencies: Dependency[] = [
     successorTaskId: t10,
     type: 'FS',
     lagDays: 0,
+    waypoints: [],
     createdAt: toISO(today),
   },
   {
@@ -458,6 +464,7 @@ export const sampleDependencies: Dependency[] = [
     successorTaskId: t11,
     type: 'FS',
     lagDays: 0,
+    waypoints: [],
     createdAt: toISO(today),
   },
   {
@@ -467,6 +474,7 @@ export const sampleDependencies: Dependency[] = [
     successorTaskId: t12,
     type: 'FS',
     lagDays: 0,
+    waypoints: [],
     createdAt: toISO(today),
   },
   {
@@ -476,6 +484,7 @@ export const sampleDependencies: Dependency[] = [
     successorTaskId: t12,
     type: 'FS',
     lagDays: 0,
+    waypoints: [],
     createdAt: toISO(today),
   },
   {
@@ -485,6 +494,7 @@ export const sampleDependencies: Dependency[] = [
     successorTaskId: t13,
     type: 'FS',
     lagDays: 0,
+    waypoints: [],
     createdAt: toISO(today),
   },
   {
@@ -494,6 +504,7 @@ export const sampleDependencies: Dependency[] = [
     successorTaskId: t14,
     type: 'FS',
     lagDays: 0,
+    waypoints: [],
     createdAt: toISO(today),
   },
 ];

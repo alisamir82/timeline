@@ -383,28 +383,39 @@ function renderToCanvas(opts: ExportOptions): HTMLCanvasElement {
     ctx.strokeStyle = '#94a3b8';
     ctx.beginPath();
 
-    const midX = (pts.x1 + pts.x2) / 2;
-    if (dep.type === 'FS' || dep.type === 'SF') {
-      if (pts.x2 > pts.x1 + 24) {
-        ctx.moveTo(pts.x1, pts.y1);
-        ctx.lineTo(midX, pts.y1);
-        ctx.lineTo(midX, pts.y2);
-        ctx.lineTo(pts.x2, pts.y2);
+    const waypoints = dep.waypoints || [];
+    if (waypoints.length > 0) {
+      // User-defined waypoint routing
+      ctx.moveTo(pts.x1, pts.y1);
+      for (const wp of waypoints) {
+        ctx.lineTo(wp.x + gridLeft, wp.y + bodyTop);
+      }
+      ctx.lineTo(pts.x2, pts.y2);
+    } else {
+      // Default right-angle routing
+      const midX = (pts.x1 + pts.x2) / 2;
+      if (dep.type === 'FS' || dep.type === 'SF') {
+        if (pts.x2 > pts.x1 + 24) {
+          ctx.moveTo(pts.x1, pts.y1);
+          ctx.lineTo(midX, pts.y1);
+          ctx.lineTo(midX, pts.y2);
+          ctx.lineTo(pts.x2, pts.y2);
+        } else {
+          const midY = (pts.y1 + pts.y2) / 2;
+          ctx.moveTo(pts.x1, pts.y1);
+          ctx.lineTo(pts.x1 + 12, pts.y1);
+          ctx.lineTo(pts.x1 + 12, midY);
+          ctx.lineTo(pts.x2 - 12, midY);
+          ctx.lineTo(pts.x2 - 12, pts.y2);
+          ctx.lineTo(pts.x2, pts.y2);
+        }
       } else {
-        const midY = (pts.y1 + pts.y2) / 2;
+        const leftX = Math.min(pts.x1, pts.x2) - 12;
         ctx.moveTo(pts.x1, pts.y1);
-        ctx.lineTo(pts.x1 + 12, pts.y1);
-        ctx.lineTo(pts.x1 + 12, midY);
-        ctx.lineTo(pts.x2 - 12, midY);
-        ctx.lineTo(pts.x2 - 12, pts.y2);
+        ctx.lineTo(leftX, pts.y1);
+        ctx.lineTo(leftX, pts.y2);
         ctx.lineTo(pts.x2, pts.y2);
       }
-    } else {
-      const leftX = Math.min(pts.x1, pts.x2) - 12;
-      ctx.moveTo(pts.x1, pts.y1);
-      ctx.lineTo(leftX, pts.y1);
-      ctx.lineTo(leftX, pts.y2);
-      ctx.lineTo(pts.x2, pts.y2);
     }
     ctx.stroke();
 
@@ -412,9 +423,18 @@ function renderToCanvas(opts: ExportOptions): HTMLCanvasElement {
     ctx.setLineDash([]);
     ctx.fillStyle = '#94a3b8';
     ctx.beginPath();
-    ctx.moveTo(pts.x2, pts.y2);
-    ctx.lineTo(pts.x2 - 6, pts.y2 - 3);
-    ctx.lineTo(pts.x2 - 6, pts.y2 + 3);
+    if (waypoints.length > 0) {
+      const lastWp = waypoints[waypoints.length - 1];
+      const lastFrom = { x: lastWp.x + gridLeft, y: lastWp.y + bodyTop };
+      const angle = Math.atan2(pts.y2 - lastFrom.y, pts.x2 - lastFrom.x);
+      ctx.moveTo(pts.x2, pts.y2);
+      ctx.lineTo(pts.x2 - 6 * Math.cos(angle - 0.4), pts.y2 - 6 * Math.sin(angle - 0.4));
+      ctx.lineTo(pts.x2 - 6 * Math.cos(angle + 0.4), pts.y2 - 6 * Math.sin(angle + 0.4));
+    } else {
+      ctx.moveTo(pts.x2, pts.y2);
+      ctx.lineTo(pts.x2 - 6, pts.y2 - 3);
+      ctx.lineTo(pts.x2 - 6, pts.y2 + 3);
+    }
     ctx.closePath();
     ctx.fill();
     ctx.setLineDash([4, 3]);

@@ -87,6 +87,7 @@ export interface Dependency {
   successorTaskId: string;
   type: DependencyType;
   lagDays: number;
+  waypoints: { x: number; y: number }[]; // user-defined intermediate routing points
   createdAt: string;
 }
 

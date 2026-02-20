@@ -105,6 +105,7 @@ interface ProjectState {
   // Dependency CRUD
   addDependency: (predecessorId: string, successorId: string, type: DependencyType) => boolean;
   deleteDependency: (id: string) => void;
+  updateDependencyWaypoints: (id: string, waypoints: { x: number; y: number }[]) => void;
 
   // Custom fields
   addCustomField: (field: Partial<CustomFieldDefinition>) => void;
@@ -392,6 +393,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       successorTaskId: successorId,
       type,
       lagDays: 0,
+      waypoints: [],
       createdAt: new Date().toISOString(),
     };
 
@@ -406,6 +408,16 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     const dep = dependencies.find((d) => d.id === id);
     set({ dependencies: dependencies.filter((d) => d.id !== id) });
     if (dep) get().addAuditEvent('delete', 'dependency', id, dep, null);
+    get().syncActiveProject();
+  },
+
+  updateDependencyWaypoints: (id, waypoints) => {
+    const { dependencies } = get();
+    set({
+      dependencies: dependencies.map((d) =>
+        d.id === id ? { ...d, waypoints } : d
+      ),
+    });
     get().syncActiveProject();
   },
 

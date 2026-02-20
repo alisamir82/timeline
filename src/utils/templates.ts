@@ -87,6 +87,7 @@ function buildProjectData(
     successorTaskId: taskIds[succIdx],
     type: 'FS' as const,
     lagDays: 0,
+    waypoints: [],
     createdAt: now,
   }));
 
