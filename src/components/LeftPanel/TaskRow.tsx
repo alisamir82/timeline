@@ -6,6 +6,7 @@ import {
   FolderOpen,
   GripVertical,
   MessageSquare,
+  CheckCircle2,
 } from 'lucide-react';
 import type { Task, RAGStatus } from '../../types';
 import { RAG_COLORS } from '../../types';
@@ -50,6 +51,8 @@ export default function TaskRow({ task, depth }: TaskRowProps) {
     selectedTaskId,
     hoveredTaskId,
     tasks,
+    customFields,
+    customFieldValues,
     selectTask,
     openTaskDetails,
     toggleCollapse,
@@ -64,6 +67,12 @@ export default function TaskRow({ task, depth }: TaskRowProps) {
   const isHovered = splitIds.includes(hoveredTaskId || '');
   const isSummary = task.type === 'summary';
   const isMilestone = task.type === 'milestone';
+
+  // Check if task is approved via the 'approved' custom field
+  const approvedField = customFields.find((f) => f.key === 'approved');
+  const isApproved = approvedField
+    ? customFieldValues.some((v) => v.taskId === task.id && v.fieldDefinitionId === approvedField.id && v.value === 'true')
+    : false;
 
   return (
     <div
@@ -111,6 +120,13 @@ export default function TaskRow({ task, depth }: TaskRowProps) {
           />
         )}
       </span>
+
+      {/* Approved indicator */}
+      {isApproved && (
+        <span title="Approved" className="flex-shrink-0 mr-1">
+          <CheckCircle2 className="w-3.5 h-3.5 text-green-500" />
+        </span>
+      )}
 
       {/* Title */}
       <span

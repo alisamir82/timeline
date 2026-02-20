@@ -98,6 +98,7 @@ interface ProjectState {
   addTask: (partial: Partial<Task>) => void;
   updateTask: (id: string, updates: Partial<Task>) => void;
   deleteTask: (id: string) => void;
+  deleteSegment: (id: string) => void;
   splitTask: (id: string) => void;
   moveTask: (id: string, newStartDate: string, newEndDate: string) => void;
   toggleCollapse: (id: string) => void;
@@ -375,55 +376,153 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     get().syncActiveProject();
   },
 
+  deleteSegment: (id) => {
+    const { tasks, dependencies, stickyNotes } = get();
+    const seg = tasks.find((t) => t.id === id);
+    if (!seg || !seg.splitGroupId || seg.id === seg.splitGroupId) return; // Can't delete main via this
+
+    const remainingSegments = tasks.filter(
+      (t) => t.splitGroupId === seg.splitGroupId && t.id !== seg.splitGroupId && t.id !== id
+    );
+
+    let newTasks = tasks.filter((t) => t.id !== id);
+    const newDeps = dependencies.filter(
+      (d) => d.predecessorTaskId !== id && d.successorTaskId !== id
+    );
+    const newNotes = stickyNotes.filter((n) => n.taskId !== id);
+
+    if (remainingSegments.length === 1) {
+      // Only 1 segment left: merge it back into the main, dissolve the split
+      const lastSeg = remainingSegments[0];
+      const main = tasks.find((t) => t.id === seg.splitGroupId);
+      if (main) {
+        const merged: Task = {
+          ...main,
+          startDate: lastSeg.startDate,
+          endDate: lastSeg.endDate,
+          duration: lastSeg.duration,
+          ownerUserId: lastSeg.ownerUserId,
+          ownerText: lastSeg.ownerText,
+          status: lastSeg.status,
+          rag: lastSeg.rag,
+          percentComplete: lastSeg.percentComplete,
+          notes: lastSeg.notes,
+          splitGroupId: null,
+          updatedAt: new Date().toISOString(),
+        };
+        // Remove the last segment and update the main
+        newTasks = newTasks
+          .filter((t) => t.id !== lastSeg.id)
+          .map((t) => (t.id === main.id ? merged : t));
+      }
+    }
+
+    set({ tasks: newTasks, dependencies: newDeps, stickyNotes: newNotes });
+    get().addAuditEvent('delete', 'segment', id, seg, null);
+    get().syncActiveProject();
+  },
+
   splitTask: (id) => {
-    const { tasks } = get();
+    const { tasks, dependencies } = get();
     const task = tasks.find((t) => t.id === id);
     if (!task) return;
     if (task.type !== 'task') return; // Only regular tasks can be split
 
-    const groupId = task.splitGroupId || task.id;
-    const start = parseISO(task.startDate);
-    const end = parseISO(task.endDate);
-    const totalDays = differenceInCalendarDays(end, start);
-    if (totalDays < 2) return; // Need at least 2 days to split
-
-    const midDays = Math.floor(totalDays / 2);
-    const midDate = addDays(start, midDays);
+    const isFirstSplit = !task.splitGroupId;
     const now = new Date().toISOString();
 
-    // Update original task: set splitGroupId and shorten to first half
-    const updatedOriginal = {
-      ...task,
-      splitGroupId: groupId,
-      endDate: toISODate(midDate),
-      duration: midDays,
-      updatedAt: now,
-    };
+    if (isFirstSplit) {
+      // First split: original becomes main-only, create 2 new segments
+      const groupId = task.id;
+      const start = parseISO(task.startDate);
+      const end = parseISO(task.endDate);
+      const totalDays = differenceInCalendarDays(end, start);
+      if (totalDays < 2) return;
 
-    // Create new segment for the second half
-    const newSegment: Task = {
-      ...task,
-      id: uuidv4(),
-      splitGroupId: groupId,
-      startDate: toISODate(addDays(midDate, 1)),
-      endDate: task.endDate,
-      duration: totalDays - midDays - 1,
-      orderIndex: task.orderIndex + 0.001,
-      createdAt: now,
-      updatedAt: now,
-    };
+      const midDays = Math.floor(totalDays / 2);
+      const midDate = addDays(start, midDays);
 
-    // Also mark all existing siblings with the groupId (in case this is the first split)
-    const newTasks = tasks.map((t) => {
-      if (t.id === id) return updatedOriginal;
-      if (t.splitGroupId === groupId && groupId !== task.id) return t;
-      return t;
-    });
-    newTasks.push(newSegment);
+      const seg1Id = uuidv4();
 
-    set({ tasks: newTasks });
-    get().addAuditEvent('split', 'task', id, task, { original: updatedOriginal, newSegment });
-    get().syncActiveProject();
+      const seg1: Task = {
+        ...task,
+        id: seg1Id,
+        splitGroupId: groupId,
+        endDate: toISODate(midDate),
+        duration: midDays,
+        orderIndex: task.orderIndex + 0.001,
+        createdAt: now,
+        updatedAt: now,
+      };
+
+      const seg2: Task = {
+        ...task,
+        id: uuidv4(),
+        splitGroupId: groupId,
+        startDate: toISODate(addDays(midDate, 1)),
+        endDate: task.endDate,
+        duration: totalDays - midDays - 1,
+        orderIndex: task.orderIndex + 0.002,
+        createdAt: now,
+        updatedAt: now,
+      };
+
+      // Mark original as main-only
+      const updatedMain = { ...task, splitGroupId: groupId, updatedAt: now };
+
+      const newTasks = tasks.map((t) => (t.id === id ? updatedMain : t));
+      newTasks.push(seg1, seg2);
+
+      // Move dependencies from main to segment 1
+      const newDeps = dependencies.map((d) => {
+        let updated = d;
+        if (d.predecessorTaskId === task.id) updated = { ...updated, predecessorTaskId: seg1Id };
+        if (d.successorTaskId === task.id) updated = { ...updated, successorTaskId: seg1Id };
+        return updated;
+      });
+
+      set({ tasks: newTasks, dependencies: newDeps });
+      get().addAuditEvent('split', 'task', id, task, { main: updatedMain, seg1, seg2 });
+      get().syncActiveProject();
+    } else {
+      // Re-split an existing segment (task.id !== task.splitGroupId)
+      if (task.id === task.splitGroupId) return; // Can't split the main record
+
+      const start = parseISO(task.startDate);
+      const end = parseISO(task.endDate);
+      const totalDays = differenceInCalendarDays(end, start);
+      if (totalDays < 2) return;
+
+      const midDays = Math.floor(totalDays / 2);
+      const midDate = addDays(start, midDays);
+
+      // Shorten existing segment to first half
+      const updatedSeg = {
+        ...task,
+        endDate: toISODate(midDate),
+        duration: midDays,
+        updatedAt: now,
+      };
+
+      // Create new segment for second half
+      const newSeg: Task = {
+        ...task,
+        id: uuidv4(),
+        startDate: toISODate(addDays(midDate, 1)),
+        endDate: task.endDate,
+        duration: totalDays - midDays - 1,
+        orderIndex: task.orderIndex + 0.001,
+        createdAt: now,
+        updatedAt: now,
+      };
+
+      const newTasks = tasks.map((t) => (t.id === id ? updatedSeg : t));
+      newTasks.push(newSeg);
+
+      set({ tasks: newTasks });
+      get().addAuditEvent('split', 'task', id, task, { updatedSeg, newSeg });
+      get().syncActiveProject();
+    }
   },
 
   moveTask: (id, newStartDate, newEndDate) => {
@@ -684,7 +783,8 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   },
 
   getSplitSiblings: (splitGroupId) => {
-    return get().tasks.filter((t) => t.splitGroupId === splitGroupId);
+    // Return only actual segments (not the main record where id === splitGroupId)
+    return get().tasks.filter((t) => t.splitGroupId === splitGroupId && t.id !== splitGroupId);
   },
 
   getChildTasks: (parentId) => {

@@ -322,9 +322,15 @@ function SegmentTab({
   users,
   customFields,
   customFieldValues,
+  dependencies,
+  tasks,
   updateTask,
+  deleteSegment,
+  addDependency,
+  deleteDependency,
   updateCustomFieldValue,
   getCustomFieldValuesForTask,
+  closeTaskDetails,
 }: {
   segment: Task;
   segmentIndex: number;
@@ -333,22 +339,58 @@ function SegmentTab({
   users: { id: string; name: string }[];
   customFields: CustomFieldDefinition[];
   customFieldValues: { id: string; taskId: string; fieldDefinitionId: string; value: string }[];
+  dependencies: { id: string; predecessorTaskId: string; successorTaskId: string; type: DependencyType }[];
+  tasks: Task[];
   updateTask: (id: string, updates: Partial<Task>) => void;
+  deleteSegment: (id: string) => void;
+  addDependency: (predecessorId: string, successorId: string, type: DependencyType) => boolean;
+  deleteDependency: (id: string) => void;
   updateCustomFieldValue: (taskId: string, fieldId: string, value: string) => void;
   getCustomFieldValuesForTask: (taskId: string) => { id: string; taskId: string; fieldDefinitionId: string; value: string }[];
+  closeTaskDetails: () => void;
 }) {
   const segFieldValues = getCustomFieldValuesForTask(segment.id);
   const mainFieldValues = getCustomFieldValuesForTask(primaryTask.id);
+  const [depFormOpen, setDepFormOpen] = useState(false);
+  const [depPredecessor, setDepPredecessor] = useState('');
+  const [depType, setDepType] = useState<DependencyType>('FS');
+
+  const segDeps = dependencies.filter(
+    (d) => d.predecessorTaskId === segment.id || d.successorTaskId === segment.id
+  );
 
   const handleFieldChange = (field: string, value: unknown) => {
     updateTask(segment.id, { [field]: value });
   };
 
+  const handleAddDependency = () => {
+    if (depPredecessor && depPredecessor !== segment.id) {
+      addDependency(depPredecessor, segment.id, depType);
+      setDepFormOpen(false);
+      setDepPredecessor('');
+    }
+  };
+
   return (
     <div className="space-y-4">
       {/* Segment header */}
-      <div className="text-xs text-gray-400 dark:text-gray-500">
-        Segment {segmentIndex + 1} of {totalSegments}
+      <div className="flex items-center justify-between">
+        <span className="text-xs text-gray-400 dark:text-gray-500">
+          Segment {segmentIndex + 1} of {totalSegments}
+        </span>
+        {totalSegments > 1 && (
+          <button
+            onClick={() => {
+              if (confirm('Remove this segment?')) {
+                deleteSegment(segment.id);
+                closeTaskDetails();
+              }
+            }}
+            className="text-xs text-red-500 hover:text-red-700 dark:hover:text-red-400"
+          >
+            Remove Segment
+          </button>
+        )}
       </div>
 
       {/* Title */}
@@ -519,6 +561,60 @@ function SegmentTab({
           </div>
         </div>
       )}
+
+      {/* Dependencies */}
+      <div>
+        <div className="flex items-center justify-between mb-2">
+          <h3 className="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Dependencies</h3>
+          <button onClick={() => setDepFormOpen(!depFormOpen)}
+            className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300">+ Add</button>
+        </div>
+
+        {depFormOpen && (
+          <div className="mb-2 p-2 bg-gray-50 dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700 space-y-2">
+            <select value={depPredecessor} onChange={(e) => setDepPredecessor(e.target.value)}
+              className="w-full px-2 py-1 border border-gray-200 dark:border-gray-600 rounded text-sm bg-white dark:bg-gray-800 dark:text-gray-100">
+              <option value="">Select predecessor...</option>
+              {tasks.filter((t) => t.id !== segment.id && t.id !== t.splitGroupId).map((t) => (
+                <option key={t.id} value={t.id}>{t.title}</option>
+              ))}
+            </select>
+            <select value={depType} onChange={(e) => setDepType(e.target.value as DependencyType)}
+              className="w-full px-2 py-1 border border-gray-200 dark:border-gray-600 rounded text-sm bg-white dark:bg-gray-800 dark:text-gray-100">
+              {(Object.entries(DEPENDENCY_TYPE_LABELS) as [DependencyType, string][]).map(([k, v]) => (
+                <option key={k} value={k}>{v}</option>
+              ))}
+            </select>
+            <div className="flex gap-2">
+              <button onClick={handleAddDependency} className="px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700">Add</button>
+              <button onClick={() => setDepFormOpen(false)} className="px-3 py-1 bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 text-xs rounded hover:bg-gray-300 dark:hover:bg-gray-600">Cancel</button>
+            </div>
+          </div>
+        )}
+
+        <div className="space-y-1">
+          {segDeps.map((dep) => {
+            const isPred = dep.predecessorTaskId === segment.id;
+            const otherId = isPred ? dep.successorTaskId : dep.predecessorTaskId;
+            const otherTask = tasks.find((t) => t.id === otherId);
+            return (
+              <div key={dep.id} className="flex items-center justify-between px-2 py-1.5 bg-gray-50 dark:bg-gray-800 rounded text-xs group">
+                <div className="flex items-center gap-1.5 truncate">
+                  <Link className="w-3 h-3 text-gray-400 dark:text-gray-500 flex-shrink-0" />
+                  <span className="text-gray-400 dark:text-gray-500">{isPred ? 'to' : 'from'}</span>
+                  <span className="font-medium text-gray-700 dark:text-gray-200 truncate">{otherTask?.title || 'Unknown'}</span>
+                  <span className="text-gray-400 dark:text-gray-500">({dep.type})</span>
+                </div>
+                <button onClick={() => deleteDependency(dep.id)}
+                  className="opacity-0 group-hover:opacity-100 p-0.5 hover:text-red-500 text-gray-400 dark:text-gray-500">
+                  <X className="w-3 h-3" />
+                </button>
+              </div>
+            );
+          })}
+          {segDeps.length === 0 && <p className="text-xs text-gray-400 dark:text-gray-500">No dependencies</p>}
+        </div>
+      </div>
     </div>
   );
 }
@@ -819,6 +915,7 @@ export default function TaskDetailsDrawer() {
     openTaskDetails,
     updateTask,
     deleteTask,
+    deleteSegment,
     splitTask,
     addDependency,
     deleteDependency,
@@ -833,8 +930,9 @@ export default function TaskDetailsDrawer() {
   // Determine if this is a split task
   const isSplit = task?.splitGroupId != null;
   const primaryTask = isSplit ? tasks.find((t) => t.id === task!.splitGroupId) || task! : task;
+  // Segments exclude the main record (id !== splitGroupId)
   const segments = isSplit
-    ? tasks.filter((t) => t.splitGroupId === task!.splitGroupId).sort((a, b) => a.startDate.localeCompare(b.startDate))
+    ? tasks.filter((t) => t.splitGroupId === task!.splitGroupId && t.id !== t.splitGroupId).sort((a, b) => a.startDate.localeCompare(b.startDate))
     : [];
 
   // When selected task changes, set appropriate tab
@@ -866,14 +964,14 @@ export default function TaskDetailsDrawer() {
           </span>
         </div>
         <div className="flex items-center gap-1">
-          {canSplit && (
+          {canSplit && (!isSplit || activeTab !== 'main') && (
             <button
               onClick={() => {
-                const targetId = activeTab !== 'main' && isSplit ? activeTab : task.id;
+                const targetId = isSplit && activeTab !== 'main' ? activeTab : task.id;
                 splitTask(targetId);
               }}
               className="p-1.5 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded text-gray-400 dark:text-gray-500 hover:text-blue-500"
-              title={isSplit && activeTab !== 'main' ? 'Split this segment' : 'Split task'}
+              title={isSplit ? 'Split this segment' : 'Split task'}
             >
               <Scissors className="w-4 h-4" />
             </button>
@@ -881,7 +979,7 @@ export default function TaskDetailsDrawer() {
           <button
             onClick={() => {
               if (confirm(isSplit ? 'Delete this task and all its segments?' : 'Delete this task?')) {
-                deleteTask(task.id);
+                deleteTask(primaryTask!.id);
                 closeTaskDetails();
               }
             }}
@@ -969,9 +1067,15 @@ export default function TaskDetailsDrawer() {
                 users={users}
                 customFields={customFields}
                 customFieldValues={customFieldValues}
+                dependencies={dependencies}
+                tasks={tasks}
                 updateTask={updateTask}
+                deleteSegment={deleteSegment}
+                addDependency={addDependency}
+                deleteDependency={deleteDependency}
                 updateCustomFieldValue={updateCustomFieldValue}
                 getCustomFieldValuesForTask={getCustomFieldValuesForTask}
+                closeTaskDetails={closeTaskDetails}
               />
             );
           })()
