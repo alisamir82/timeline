@@ -323,8 +323,9 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
 
     let newTasks = tasks.map((t) => (t.id === id ? updatedTask : t));
 
-    // Sync shared properties across split siblings
-    const SHARED_FIELDS = ['title', 'description', 'type', 'ownerUserId', 'ownerText', 'status', 'rag', 'percentComplete', 'color', 'notes', 'tags', 'parentId'];
+    // Sync only structural/visual properties across split siblings
+    // Segment-owned fields (owner, status, rag, notes, percentComplete, dates) are independent
+    const SHARED_FIELDS = ['color', 'tags', 'parentId', 'type'];
     if (updatedTask.splitGroupId) {
       const sharedUpdates: Partial<Task> = {};
       let hasShared = false;
@@ -378,6 +379,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     const { tasks } = get();
     const task = tasks.find((t) => t.id === id);
     if (!task) return;
+    if (task.type !== 'task') return; // Only regular tasks can be split
 
     const groupId = task.splitGroupId || task.id;
     const start = parseISO(task.startDate);
