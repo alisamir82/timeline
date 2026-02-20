@@ -11,6 +11,10 @@ import {
   COLUMN_HEADER_HEIGHT,
   isWeekend,
   dateToPixelOffset,
+  startOfDay,
+  startOfWeek,
+  startOfMonth,
+  startOfQuarter,
 } from '../../utils/dates';
 import TimelineHeader from './TimelineHeader';
 import TaskBar from './TaskBar';
@@ -47,7 +51,16 @@ export default function TimelineGrid({ scrollTop, onScroll }: TimelineGridProps)
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [addNoteMode, setAddNoteMode]);
 
-  const timelineStart = useMemo(() => addDays(parseISO(project.startDate), -7), [project.startDate]);
+  // Align timelineStart to the period boundary so grid columns match dateToPixelOffset
+  const timelineStart = useMemo(() => {
+    const rawStart = addDays(parseISO(project.startDate), -7);
+    switch (zoom) {
+      case 'day': return startOfDay(rawStart);
+      case 'week': return startOfWeek(rawStart, { weekStartsOn: 1 });
+      case 'month': return startOfMonth(rawStart);
+      case 'quarter': return startOfQuarter(rawStart);
+    }
+  }, [project.startDate, zoom]);
   const timelineEnd = useMemo(() => addDays(parseISO(project.endDate), 14), [project.endDate]);
 
   const units = getTimelineUnits(timelineStart, timelineEnd, zoom);

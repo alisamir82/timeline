@@ -38,6 +38,9 @@ export {
   max as maxDate,
   min as minDate,
   startOfDay,
+  startOfWeek,
+  startOfMonth,
+  startOfQuarter,
 };
 
 // Column width in pixels per zoom level
@@ -132,10 +135,30 @@ export function dateToPixelOffset(
       return days * colWidth;
     case 'week':
       return (days / 7) * colWidth;
-    case 'month':
-      return (days / 30) * colWidth;
-    case 'quarter':
-      return (days / 91) * colWidth;
+    case 'month': {
+      // Exact month math: count full months + fractional day within month
+      const d = startOfDay(date);
+      const mStart = startOfMonth(d);
+      const fullMonths =
+        (mStart.getFullYear() - timelineStart.getFullYear()) * 12 +
+        (mStart.getMonth() - timelineStart.getMonth());
+      const daysInThisMonth = differenceInCalendarDays(addMonths(mStart, 1), mStart);
+      const dayOffset = differenceInCalendarDays(d, mStart);
+      return (fullMonths + dayOffset / daysInThisMonth) * colWidth;
+    }
+    case 'quarter': {
+      // Exact quarter math: count full quarters + fractional day within quarter
+      const d = startOfDay(date);
+      const qStart = startOfQuarter(d);
+      const fullMonthsToQ =
+        (qStart.getFullYear() - timelineStart.getFullYear()) * 12 +
+        (qStart.getMonth() - timelineStart.getMonth());
+      const quarterIndex = fullMonthsToQ / 3;
+      const qEnd = addMonths(qStart, 3);
+      const daysInQuarter = differenceInCalendarDays(qEnd, qStart);
+      const dayOffset = differenceInCalendarDays(d, qStart);
+      return (quarterIndex + dayOffset / daysInQuarter) * colWidth;
+    }
   }
 }
 
@@ -154,12 +177,26 @@ export function pixelOffsetToDate(
     case 'week':
       days = (px / colWidth) * 7;
       break;
-    case 'month':
-      days = (px / colWidth) * 30;
+    case 'month': {
+      // Exact inverse of month dateToPixelOffset
+      const monthIndex = px / colWidth;
+      const fullMonths = Math.floor(monthIndex);
+      const fraction = monthIndex - fullMonths;
+      const monthStart = addMonths(timelineStart, fullMonths);
+      const daysInMonth = differenceInCalendarDays(addMonths(monthStart, 1), monthStart);
+      days = differenceInCalendarDays(monthStart, timelineStart) + fraction * daysInMonth;
       break;
-    case 'quarter':
-      days = (px / colWidth) * 91;
+    }
+    case 'quarter': {
+      // Exact inverse of quarter dateToPixelOffset
+      const quarterIndex = px / colWidth;
+      const fullQuarters = Math.floor(quarterIndex);
+      const fraction = quarterIndex - fullQuarters;
+      const qStart = addMonths(timelineStart, fullQuarters * 3);
+      const daysInQuarter = differenceInCalendarDays(addMonths(qStart, 3), qStart);
+      days = differenceInCalendarDays(qStart, timelineStart) + fraction * daysInQuarter;
       break;
+    }
   }
 
   return startOfDay(addDays(timelineStart, Math.round(days)));
