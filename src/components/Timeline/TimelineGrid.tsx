@@ -162,7 +162,7 @@ export default function TimelineGrid({ scrollTop, onScroll }: TimelineGridProps)
               {/* Quality gate stars */}
               {qualityGates.map((gate) => {
                 const cx = dateToPixelOffset(parseISO(gate.startDate), timelineStart, zoom);
-                const cy = COLUMN_HEADER_HEIGHT - 15;
+                const cy = COLUMN_HEADER_HEIGHT / 2;
                 const outerR = 10;
                 const innerR = 4;
 
@@ -188,11 +188,10 @@ export default function TimelineGrid({ scrollTop, onScroll }: TimelineGridProps)
                       fill={gate.color}
                     />
                     <text
-                      x={cx}
-                      y={columnHeaderHeight - 1}
-                      textAnchor="middle"
-                      className="text-[7px]"
-                      fill={isDark ? '#d1d5db' : '#6b7280'}
+                      x={cx + outerR + 4}
+                      y={cy + 4}
+                      className="text-[11px]"
+                      fill={isDark ? '#e5e7eb' : '#4b5563'}
                       style={{ pointerEvents: 'none' }}
                     >
                       {gate.title}
