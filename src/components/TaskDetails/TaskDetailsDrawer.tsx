@@ -10,9 +10,11 @@ import {
   Layers,
   Star,
 } from 'lucide-react';
+import { addDays, format } from 'date-fns';
 import type { Task, RAGStatus, DependencyType, CustomFieldDefinition } from '../../types';
 import { DEFAULT_STATUSES, DEFAULT_COLORS, RAG_COLORS, DEPENDENCY_TYPE_LABELS } from '../../types';
 import { useProjectStore } from '../../stores/useProjectStore';
+import { parseISO } from '../../utils/dates';
 
 // ---- Helpers ----
 
@@ -428,8 +430,19 @@ function SegmentTab({
       </div>
 
       {/* Duration */}
-      <div className="text-xs text-gray-400 dark:text-gray-500">
-        Duration: {segment.duration} day{segment.duration !== 1 ? 's' : ''}
+      <div>
+        <label className="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Duration (days)</label>
+        <input
+          type="number"
+          min={1}
+          value={segment.duration}
+          onChange={(e) => {
+            const days = Math.max(1, parseInt(e.target.value) || 1);
+            const newEnd = format(addDays(parseISO(segment.startDate), days - 1), 'yyyy-MM-dd');
+            updateTask(segment.id, { endDate: newEnd, duration: days });
+          }}
+          className="w-full mt-1 px-2 py-1.5 border border-gray-200 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-400"
+        />
       </div>
 
       {/* Owner */}
@@ -725,8 +738,20 @@ function FlatTaskForm({
             </div>
           </div>
 
-          <div className="text-xs text-gray-400 dark:text-gray-500">
-            Duration: {task.duration} day{task.duration !== 1 ? 's' : ''}
+          <div>
+            <label className="text-[11px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Duration (days)</label>
+            <input
+              type="number"
+              min={1}
+              value={task.duration}
+              onChange={(e) => {
+                const days = Math.max(1, parseInt(e.target.value) || 1);
+                const newEnd = format(addDays(parseISO(task.startDate), days - 1), 'yyyy-MM-dd');
+                handleFieldChange('endDate', newEnd);
+                handleFieldChange('duration', days);
+              }}
+              className="w-full mt-1 px-2 py-1.5 border border-gray-200 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-400"
+            />
           </div>
         </>
       )}
