@@ -6,7 +6,7 @@ import {
   FolderOpen,
   GripVertical,
   MessageSquare,
-  CheckCircle2,
+  Check,
   Star,
 } from 'lucide-react';
 import type { Task, RAGStatus } from '../../types';
@@ -107,6 +107,13 @@ export default function TaskRow({ task, depth, index, onDragStart, onDragOver, o
       onMouseEnter={() => setHoveredTask(task.id)}
       onMouseLeave={() => setHoveredTask(null)}
     >
+      {/* Approved indicator — outside left edge */}
+      {isApproved ? (
+        <Check className="w-4 h-4 text-green-500 flex-shrink-0 mr-0.5" strokeWidth={3} />
+      ) : (
+        <span className="w-4 flex-shrink-0 mr-0.5" />
+      )}
+
       {/* Drag handle */}
       <GripVertical className="w-3 h-3 text-gray-300 dark:text-gray-600 opacity-0 group-hover:opacity-100 mr-1 flex-shrink-0 cursor-grab" />
 
@@ -144,13 +151,6 @@ export default function TaskRow({ task, depth, index, onDragStart, onDragOver, o
           />
         )}
       </span>
-
-      {/* Approved indicator */}
-      {isApproved && (
-        <span title="Approved" className="flex-shrink-0 mr-1">
-          <CheckCircle2 className="w-3.5 h-3.5 text-green-500" />
-        </span>
-      )}
 
       {/* Title */}
       <span
