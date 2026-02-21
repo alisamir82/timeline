@@ -438,8 +438,8 @@ function SegmentTab({
           value={segment.duration}
           onChange={(e) => {
             const days = Math.max(1, parseInt(e.target.value) || 1);
-            const newEnd = format(addDays(parseISO(segment.startDate), days - 1), 'yyyy-MM-dd');
-            updateTask(segment.id, { endDate: newEnd, duration: days });
+            const newEnd = format(addDays(parseISO(segment.startDate), days), 'yyyy-MM-dd');
+            updateTask(segment.id, { endDate: newEnd });
           }}
           className="w-full mt-1 px-2 py-1.5 border border-gray-200 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-400"
         />
@@ -746,9 +746,8 @@ function FlatTaskForm({
               value={task.duration}
               onChange={(e) => {
                 const days = Math.max(1, parseInt(e.target.value) || 1);
-                const newEnd = format(addDays(parseISO(task.startDate), days - 1), 'yyyy-MM-dd');
+                const newEnd = format(addDays(parseISO(task.startDate), days), 'yyyy-MM-dd');
                 handleFieldChange('endDate', newEnd);
-                handleFieldChange('duration', days);
               }}
               className="w-full mt-1 px-2 py-1.5 border border-gray-200 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 rounded text-sm focus:outline-none focus:ring-1 focus:ring-blue-400"
             />
