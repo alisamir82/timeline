@@ -24,7 +24,7 @@ export default function App() {
   const {
     project, tasks, dependencies, stickyNotes, customFields, customFieldValues,
     zoom, showTaskDetails, currentUser, theme, autoSave, isDirty, lastSavedAt,
-    exportAllData, importAllData, markSaved,
+    todayOverride, exportAllData, importAllData, markSaved,
   } = useProjectStore();
 
   const [leftPanelWidth, setLeftPanelWidth] = useState(LEFT_PANEL_DEFAULT_WIDTH);
@@ -232,14 +232,14 @@ export default function App() {
         return;
       }
       const dark = theme === 'dark';
-      const opts = { project, tasks, dependencies, stickyNotes, zoom, dark };
+      const opts = { project, tasks, dependencies, stickyNotes, zoom, dark, todayOverride };
       if (fmt === 'png') {
         exportPNG(opts);
       } else {
         exportPDF(opts);
       }
     },
-    [project, tasks, dependencies, stickyNotes, zoom, customFields, customFieldValues, theme]
+    [project, tasks, dependencies, stickyNotes, zoom, customFields, customFieldValues, theme, todayOverride]
   );
 
   const lastSavedLabel = lastSavedAt

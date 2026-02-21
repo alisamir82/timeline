@@ -1,4 +1,4 @@
-import React, { useRef, useMemo, useEffect, useState } from 'react';
+import React, { useRef, useMemo, useEffect, useState, useCallback } from 'react';
 import type { ZoomLevel, Task } from '../../types';
 import { useProjectStore } from '../../stores/useProjectStore';
 import {
@@ -11,6 +11,7 @@ import {
   COLUMN_HEADER_HEIGHT,
   isWeekend,
   dateToPixelOffset,
+  pixelOffsetToDate,
 } from '../../utils/dates';
 import TimelineHeader from './TimelineHeader';
 import TaskBar from './TaskBar';
@@ -25,7 +26,7 @@ interface TimelineGridProps {
 
 export default function TimelineGrid({ scrollTop, onScroll }: TimelineGridProps) {
   const { project, zoom, getVisibleTasks, getQualityGates, getSplitSiblings, addNoteMode, setAddNoteMode, theme,
-    selectedTaskId, hoveredTaskId, selectTask, openTaskDetails, setHoveredTask } = useProjectStore();
+    selectedTaskId, hoveredTaskId, selectTask, openTaskDetails, setHoveredTask, todayOverride, setTodayOverride } = useProjectStore();
   const isDark = theme === 'dark';
   const containerRef = useRef<HTMLDivElement>(null);
   const isScrollingSelf = useRef(false);
@@ -61,9 +62,37 @@ export default function TimelineGrid({ scrollTop, onScroll }: TimelineGridProps)
   // Track horizontal scroll to sync header
   const [hScrollLeft, setHScrollLeft] = useState(0);
 
-  const todayX = dateToPixelOffset(new Date(), timelineStart, zoom);
+  const todayDate = todayOverride || new Date();
+  const todayX = dateToPixelOffset(todayDate, timelineStart, zoom);
 
   const columnHeaderHeight = COLUMN_HEADER_HEIGHT;
+
+  // Drag state for today line
+  const draggingToday = useRef(false);
+  const headerSvgRef = useRef<SVGSVGElement>(null);
+
+  const handleTodayDragStart = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    draggingToday.current = true;
+
+    const onMouseMove = (me: MouseEvent) => {
+      if (!draggingToday.current || !headerSvgRef.current) return;
+      const rect = headerSvgRef.current.getBoundingClientRect();
+      const px = me.clientX - rect.left;
+      const newDate = pixelOffsetToDate(px, timelineStart, zoom);
+      setTodayOverride(newDate);
+    };
+
+    const onMouseUp = () => {
+      draggingToday.current = false;
+      document.removeEventListener('mousemove', onMouseMove);
+      document.removeEventListener('mouseup', onMouseUp);
+    };
+
+    document.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('mouseup', onMouseUp);
+  }, [timelineStart, zoom, setTodayOverride]);
 
   return (
     <div className={`flex-1 flex flex-col overflow-hidden bg-white dark:bg-gray-900 ${addNoteMode ? 'cursor-crosshair' : ''}`}>
@@ -99,8 +128,8 @@ export default function TimelineGrid({ scrollTop, onScroll }: TimelineGridProps)
       >
         {/* Today line + gate stars rendered inside this area */}
         <div style={{ transform: `translateX(${-hScrollLeft}px)`, width: totalWidth, height: columnHeaderHeight, position: 'absolute', top: 0, left: 0 }}>
-            <svg width={totalWidth} height={columnHeaderHeight} style={{ position: 'absolute', top: 0, left: 0 }}>
-              {/* Today line through the column header area */}
+            <svg ref={headerSvgRef} width={totalWidth} height={columnHeaderHeight} style={{ position: 'absolute', top: 0, left: 0 }}>
+              {/* Today line through the column header area — draggable */}
               <line
                 x1={todayX}
                 y1={0}
@@ -110,7 +139,25 @@ export default function TimelineGrid({ scrollTop, onScroll }: TimelineGridProps)
                 strokeWidth={1.5}
                 strokeDasharray="4 2"
               />
-              <circle cx={todayX} cy={0} r={4} fill="#ef4444" />
+              {/* Invisible wider hit area for easier grabbing */}
+              <line
+                x1={todayX}
+                y1={0}
+                x2={todayX}
+                y2={columnHeaderHeight}
+                stroke="transparent"
+                strokeWidth={10}
+                className="cursor-ew-resize"
+                onMouseDown={handleTodayDragStart}
+              />
+              <circle
+                cx={todayX}
+                cy={0}
+                r={4}
+                fill="#ef4444"
+                className="cursor-ew-resize"
+                onMouseDown={handleTodayDragStart}
+              />
 
               {/* Quality gate stars */}
               {qualityGates.map((gate) => {

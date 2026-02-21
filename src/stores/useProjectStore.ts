@@ -74,6 +74,7 @@ interface ProjectState {
   filters: FilterState;
   dragState: DragState | null;
   addNoteMode: boolean;
+  todayOverride: Date | null;
 
   // Theme & auto-save
   theme: ThemeMode;
@@ -93,6 +94,7 @@ interface ProjectState {
   setHoveredDependency: (id: string | null) => void;
   openTaskDetails: (id: string) => void;
   closeTaskDetails: () => void;
+  setTodayOverride: (date: Date | null) => void;
 
   // Task CRUD
   addTask: (partial: Partial<Task>) => void;
@@ -236,6 +238,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   filters: defaultFilters,
   dragState: null,
   addNoteMode: false,
+  todayOverride: null,
 
   // Theme & auto-save
   theme: (localStorage.getItem('timeline-theme') as ThemeMode) || 'light',
@@ -272,6 +275,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
 
   openTaskDetails: (id) => set({ selectedTaskId: id, showTaskDetails: true }),
   closeTaskDetails: () => set({ showTaskDetails: false }),
+  setTodayOverride: (date) => set({ todayOverride: date }),
 
   // Task CRUD
   addTask: (partial) => {

@@ -1,5 +1,6 @@
 import React from 'react';
 import type { ZoomLevel } from '../../types';
+import { useProjectStore } from '../../stores/useProjectStore';
 import { dateToPixelOffset } from '../../utils/dates';
 
 interface TodayLineProps {
@@ -9,7 +10,8 @@ interface TodayLineProps {
 }
 
 export default function TodayLine({ timelineStart, zoom, height }: TodayLineProps) {
-  const today = new Date();
+  const todayOverride = useProjectStore((s) => s.todayOverride);
+  const today = todayOverride || new Date();
   const x = dateToPixelOffset(today, timelineStart, zoom);
 
   return (
