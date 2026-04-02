@@ -155,6 +155,44 @@ export default function TaskBar({ task, rowIndex, timelineStart, zoom }: TaskBar
     );
   }
 
+  // Quality Gate rendering (5-pointed star)
+  if (task.type === 'quality_gate') {
+    const cx = left;
+    const cy = top + barHeight / 2;
+    const outerR = 11;
+    const innerR = 5;
+    const pts: string[] = [];
+    for (let i = 0; i < 5; i++) {
+      const outerAngle = (Math.PI / 2) + (2 * Math.PI * i) / 5;
+      const innerAngle = outerAngle + Math.PI / 5;
+      pts.push(`${cx + outerR * Math.cos(outerAngle)},${cy - outerR * Math.sin(outerAngle)}`);
+      pts.push(`${cx + innerR * Math.cos(innerAngle)},${cy - innerR * Math.sin(innerAngle)}`);
+    }
+    return (
+      <g
+        onClick={handleClick}
+        onDoubleClick={() => openTaskDetails(task.id)}
+        onMouseEnter={() => setHoveredTask(task.id)}
+        onMouseLeave={() => setHoveredTask(null)}
+        className="cursor-pointer"
+      >
+        <polygon
+          points={pts.join(' ')}
+          fill={task.color}
+        />
+        <text
+          x={cx + outerR + 4}
+          y={cy + 4}
+          className="text-[11px] font-medium"
+          fill={isDark ? '#e5e7eb' : '#4b5563'}
+          style={{ pointerEvents: 'none' }}
+        >
+          {task.title}
+        </text>
+      </g>
+    );
+  }
+
   // Summary bar rendering
   if (task.type === 'summary') {
     return (

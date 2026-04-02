@@ -1,4 +1,4 @@
-import React, { useRef, useMemo, useEffect } from 'react';
+import React, { useRef, useMemo, useEffect, useState, useCallback } from 'react';
 import type { ZoomLevel, Task } from '../../types';
 import { useProjectStore } from '../../stores/useProjectStore';
 import {
@@ -11,6 +11,7 @@ import {
   COLUMN_HEADER_HEIGHT,
   isWeekend,
   dateToPixelOffset,
+  pixelOffsetToDate,
 } from '../../utils/dates';
 import TimelineHeader from './TimelineHeader';
 import TaskBar from './TaskBar';
@@ -24,13 +25,16 @@ interface TimelineGridProps {
 }
 
 export default function TimelineGrid({ scrollTop, onScroll }: TimelineGridProps) {
-  const { project, zoom, getVisibleTasks, addNoteMode, setAddNoteMode, theme } = useProjectStore();
+  const { project, zoom, getVisibleTasks, getQualityGates, getSplitSiblings, addNoteMode, setAddNoteMode, theme,
+    selectedTaskId, hoveredTaskId, selectTask, openTaskDetails, setHoveredTask, todayOverride, setTodayOverride } = useProjectStore();
   const isDark = theme === 'dark';
   const containerRef = useRef<HTMLDivElement>(null);
   const isScrollingSelf = useRef(false);
   const visibleTasks = getVisibleTasks();
+  const qualityGates = getQualityGates();
+  const hasGates = qualityGates.length > 0;
 
-  // Sync scroll position from left panel
+  // Sync vertical scroll position from left panel
   useEffect(() => {
     if (containerRef.current && !isScrollingSelf.current) {
       containerRef.current.scrollTop = scrollTop;
@@ -55,6 +59,41 @@ export default function TimelineGrid({ scrollTop, onScroll }: TimelineGridProps)
   const totalWidth = units.length * colWidth;
   const totalHeight = visibleTasks.length * ROW_HEIGHT;
 
+  // Track horizontal scroll to sync header
+  const [hScrollLeft, setHScrollLeft] = useState(0);
+
+  const todayDate = todayOverride || new Date();
+  const todayX = dateToPixelOffset(todayDate, timelineStart, zoom);
+
+  const columnHeaderHeight = COLUMN_HEADER_HEIGHT;
+
+  // Drag state for today line
+  const draggingToday = useRef(false);
+  const headerSvgRef = useRef<SVGSVGElement>(null);
+
+  const handleTodayDragStart = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    draggingToday.current = true;
+
+    const onMouseMove = (me: MouseEvent) => {
+      if (!draggingToday.current || !headerSvgRef.current) return;
+      const rect = headerSvgRef.current.getBoundingClientRect();
+      const px = me.clientX - rect.left;
+      const newDate = pixelOffsetToDate(px, timelineStart, zoom);
+      setTodayOverride(newDate);
+    };
+
+    const onMouseUp = () => {
+      draggingToday.current = false;
+      document.removeEventListener('mousemove', onMouseMove);
+      document.removeEventListener('mouseup', onMouseUp);
+    };
+
+    document.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('mouseup', onMouseUp);
+  }, [timelineStart, zoom, setTodayOverride]);
+
   return (
     <div className={`flex-1 flex flex-col overflow-hidden bg-white dark:bg-gray-900 ${addNoteMode ? 'cursor-crosshair' : ''}`}>
       {/* Add-note mode hint */}
@@ -70,16 +109,99 @@ export default function TimelineGrid({ scrollTop, onScroll }: TimelineGridProps)
         </div>
       )}
 
-      {/* Sticky timeline header */}
-      <TimelineHeader
-        startDate={timelineStart}
-        endDate={timelineEnd}
-        zoom={zoom}
-        scrollLeft={0}
-      />
+      {/* Fixed header area (scrolls horizontally in sync, stays pinned vertically) */}
+      <div className="flex-shrink-0 overflow-hidden">
+        <div style={{ transform: `translateX(${-hScrollLeft}px)`, width: totalWidth }}>
+          <TimelineHeader
+            startDate={timelineStart}
+            endDate={timelineEnd}
+            zoom={zoom}
+            scrollLeft={hScrollLeft}
+          />
+        </div>
+      </div>
 
-      {/* Spacer matching left panel column headers height */}
-      <div className="flex-shrink-0 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800" style={{ height: COLUMN_HEADER_HEIGHT }} />
+      {/* Column header spacer — expands when quality gates exist to show gate stars */}
+      <div
+        className="flex-shrink-0 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 relative overflow-hidden"
+        style={{ height: columnHeaderHeight }}
+      >
+        {/* Today line + gate stars rendered inside this area */}
+        <div style={{ transform: `translateX(${-hScrollLeft}px)`, width: totalWidth, height: columnHeaderHeight, position: 'absolute', top: 0, left: 0 }}>
+            <svg ref={headerSvgRef} width={totalWidth} height={columnHeaderHeight} style={{ position: 'absolute', top: 0, left: 0 }}>
+              {/* Today line through the column header area — draggable */}
+              <line
+                x1={todayX}
+                y1={0}
+                x2={todayX}
+                y2={columnHeaderHeight}
+                stroke="#ef4444"
+                strokeWidth={1.5}
+                strokeDasharray="4 2"
+              />
+              {/* Invisible wider hit area for easier grabbing */}
+              <line
+                x1={todayX}
+                y1={0}
+                x2={todayX}
+                y2={columnHeaderHeight}
+                stroke="transparent"
+                strokeWidth={10}
+                className="cursor-ew-resize"
+                onMouseDown={handleTodayDragStart}
+              />
+              <circle
+                cx={todayX}
+                cy={0}
+                r={4}
+                fill="#ef4444"
+                className="cursor-ew-resize"
+                onMouseDown={handleTodayDragStart}
+              />
+
+              {/* Quality gate stars */}
+              {qualityGates.map((gate) => {
+                const cx = dateToPixelOffset(parseISO(gate.startDate), timelineStart, zoom);
+                const cy = COLUMN_HEADER_HEIGHT / 2;
+                const outerR = 10;
+                const innerR = 4;
+
+                const pts: string[] = [];
+                for (let i = 0; i < 5; i++) {
+                  const outerAngle = (Math.PI / 2) + (2 * Math.PI * i) / 5;
+                  const innerAngle = outerAngle + Math.PI / 5;
+                  pts.push(`${cx + outerR * Math.cos(outerAngle)},${cy - outerR * Math.sin(outerAngle)}`);
+                  pts.push(`${cx + innerR * Math.cos(innerAngle)},${cy - innerR * Math.sin(innerAngle)}`);
+                }
+
+                return (
+                  <g
+                    key={gate.id}
+                    className="cursor-pointer"
+                    onClick={() => selectTask(gate.id)}
+                    onDoubleClick={() => openTaskDetails(gate.id)}
+                    onMouseEnter={() => setHoveredTask(gate.id)}
+                    onMouseLeave={() => setHoveredTask(null)}
+                  >
+                    <polygon
+                      points={pts.join(' ')}
+                      fill={gate.color}
+                    />
+                    <text
+                      x={cx + outerR + 4}
+                      y={cy + 4}
+                      className="text-[11px]"
+                      fill={isDark ? '#e5e7eb' : '#4b5563'}
+                      style={{ pointerEvents: 'none' }}
+                    >
+                      {gate.title}
+                    </text>
+                  </g>
+                );
+              })}
+            </svg>
+          </div>
+      </div>
 
       {/* Scrollable body */}
       <div
@@ -89,6 +211,7 @@ export default function TimelineGrid({ scrollTop, onScroll }: TimelineGridProps)
           isScrollingSelf.current = true;
           const el = e.target as HTMLElement;
           onScroll(el.scrollTop);
+          setHScrollLeft(el.scrollLeft);
           requestAnimationFrame(() => { isScrollingSelf.current = false; });
         }}
       >
@@ -174,18 +297,32 @@ export default function TimelineGrid({ scrollTop, onScroll }: TimelineGridProps)
               zoom={zoom}
             />
 
-            {/* Task bars */}
-            {visibleTasks.map((task, i) => (
-              <TaskBar
-                key={task.id}
-                task={task}
-                rowIndex={i}
-                timelineStart={timelineStart}
-                zoom={zoom}
-              />
-            ))}
+            {/* Task bars (render all split segments on the same row) */}
+            {visibleTasks.map((task, i) => {
+              if (task.splitGroupId) {
+                const siblings = getSplitSiblings(task.splitGroupId);
+                return siblings.map((seg) => (
+                  <TaskBar
+                    key={seg.id}
+                    task={seg}
+                    rowIndex={i}
+                    timelineStart={timelineStart}
+                    zoom={zoom}
+                  />
+                ));
+              }
+              return (
+                <TaskBar
+                  key={task.id}
+                  task={task}
+                  rowIndex={i}
+                  timelineStart={timelineStart}
+                  zoom={zoom}
+                />
+              );
+            })}
 
-            {/* Today line */}
+            {/* Today line (vertical dashed line only) */}
             <TodayLine
               timelineStart={timelineStart}
               zoom={zoom}

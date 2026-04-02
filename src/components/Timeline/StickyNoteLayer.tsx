@@ -27,8 +27,8 @@ function getTaskBarGeometry(
   const endPx = dateToPixelOffset(parseISO(task.endDate), timelineStart, zoom);
   const cy = rowIndex * ROW_HEIGHT + ROW_HEIGHT / 2;
 
-  if (task.type === 'milestone') {
-    const size = 10;
+  if (task.type === 'milestone' || task.type === 'quality_gate') {
+    const size = 11;
     return { center: { x: startPx, y: cy }, rect: { x: startPx - size, y: cy - size, w: size * 2, h: size * 2 } };
   }
   if (task.type === 'summary') {
@@ -235,16 +235,23 @@ export default function StickyNoteLayer({
   totalWidth,
   totalHeight,
 }: StickyNoteLayerProps) {
-  const { stickyNotes, theme } = useProjectStore();
+  const { stickyNotes, tasks: allTasks, theme } = useProjectStore();
   const isDark = theme === 'dark';
   const arrowColor = isDark ? '#9ca3af' : '#6b7280';
 
-  // Build a map of taskId -> rowIndex for visible tasks
+  // Build a map of taskId -> rowIndex for visible tasks (including split siblings)
   const taskRowMap = new Map<string, number>();
-  visibleTasks.forEach((t, i) => taskRowMap.set(t.id, i));
+  visibleTasks.forEach((t, i) => {
+    taskRowMap.set(t.id, i);
+    if (t.splitGroupId) {
+      allTasks.filter((s) => s.splitGroupId === t.splitGroupId).forEach((s) => {
+        taskRowMap.set(s.id, i);
+      });
+    }
+  });
 
   const taskMap = new Map<string, Task>();
-  visibleTasks.forEach((t) => taskMap.set(t.id, t));
+  allTasks.forEach((t) => taskMap.set(t.id, t));
 
   // Only show notes for tasks that are visible
   const visibleNotes = stickyNotes.filter((n) => taskRowMap.has(n.taskId));

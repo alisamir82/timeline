@@ -6,7 +6,7 @@ export type ZoomLevel = 'day' | 'week' | 'month' | 'quarter';
 
 export type ThemeMode = 'light' | 'dark';
 
-export type TaskType = 'task' | 'milestone' | 'summary';
+export type TaskType = 'task' | 'milestone' | 'summary' | 'quality_gate';
 
 export type RAGStatus = 'red' | 'amber' | 'green' | 'none';
 
@@ -75,9 +75,15 @@ export interface Task {
   tags: string[];
   orderIndex: number;
   collapsed: boolean; // UI state for summary tasks
+  splitGroupId: string | null; // All segments of a split task share this ID
   createdBy: string;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface DependencyWaypoint {
+  x: number; // absolute pixel x (will be recalculated relative to segment)
+  y: number; // absolute pixel y
 }
 
 export interface Dependency {
@@ -88,6 +94,7 @@ export interface Dependency {
   type: DependencyType;
   lagDays: number;
   createdAt: string;
+  manualRoute: number[] | null; // stores the x-offsets for each vertical/horizontal segment of the path
 }
 
 export interface CustomFieldDefinition {

@@ -6,6 +6,8 @@ import {
   FolderOpen,
   GripVertical,
   MessageSquare,
+  Check,
+  Star,
 } from 'lucide-react';
 import type { Task, RAGStatus } from '../../types';
 import { RAG_COLORS } from '../../types';
@@ -15,6 +17,12 @@ import { ROW_HEIGHT } from '../../utils/dates';
 interface TaskRowProps {
   task: Task;
   depth: number;
+  index: number;
+  onDragStart: (index: number) => void;
+  onDragOver: (index: number) => void;
+  onDragEnd: () => void;
+  isDragOver: boolean;
+  isDragging: boolean;
 }
 
 function RAGBadge({ rag }: { rag: RAGStatus }) {
@@ -45,34 +53,69 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
-export default function TaskRow({ task, depth }: TaskRowProps) {
+export default function TaskRow({ task, depth, index, onDragStart, onDragOver, onDragEnd, isDragOver, isDragging }: TaskRowProps) {
   const {
     selectedTaskId,
     hoveredTaskId,
+    tasks,
+    customFields,
+    customFieldValues,
     selectTask,
     openTaskDetails,
     toggleCollapse,
     setHoveredTask,
   } = useProjectStore();
 
-  const isSelected = selectedTaskId === task.id;
-  const isHovered = hoveredTaskId === task.id;
+  // For split groups, highlight if any segment is selected/hovered
+  const splitIds = task.splitGroupId
+    ? tasks.filter((t) => t.splitGroupId === task.splitGroupId).map((t) => t.id)
+    : [task.id];
+  const isSelected = splitIds.includes(selectedTaskId || '');
+  const isHovered = splitIds.includes(hoveredTaskId || '');
   const isSummary = task.type === 'summary';
   const isMilestone = task.type === 'milestone';
+  const isQualityGate = task.type === 'quality_gate';
+
+  // Check if task is approved via the 'approved' custom field
+  const approvedField = customFields.find((f) => f.key === 'approved');
+  const isApproved = approvedField
+    ? customFieldValues.some((v) => v.taskId === task.id && v.fieldDefinitionId === approvedField.id && v.value === 'true')
+    : false;
 
   return (
     <div
-      className={`flex items-center border-b border-gray-100 dark:border-gray-800 cursor-pointer select-none group
+      className={`flex items-center border-b cursor-pointer select-none group relative
+        ${isDragOver ? 'border-t-2 border-t-blue-500 border-b-gray-100 dark:border-b-gray-800' : 'border-b-gray-100 dark:border-b-gray-800'}
+        ${isDragging ? 'opacity-40' : ''}
         ${isSelected ? 'bg-blue-50 dark:bg-blue-900/30' : isHovered ? 'bg-gray-50 dark:bg-gray-800' : 'bg-white dark:bg-gray-900'}
       `}
       style={{ height: ROW_HEIGHT, paddingLeft: depth * 20 + 4 }}
+      draggable
+      onDragStart={(e) => {
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', String(index));
+        onDragStart(index);
+      }}
+      onDragOver={(e) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        onDragOver(index);
+      }}
+      onDragEnd={onDragEnd}
       onClick={() => selectTask(task.id)}
       onDoubleClick={() => openTaskDetails(task.id)}
       onMouseEnter={() => setHoveredTask(task.id)}
       onMouseLeave={() => setHoveredTask(null)}
     >
+      {/* Approved indicator — outside left edge */}
+      {isApproved ? (
+        <Check className="w-4 h-4 text-green-500 flex-shrink-0 mr-0.5" strokeWidth={3} />
+      ) : (
+        <span className="w-4 flex-shrink-0 mr-0.5" />
+      )}
+
       {/* Drag handle */}
-      <GripVertical className="w-3 h-3 text-gray-300 dark:text-gray-600 opacity-0 group-hover:opacity-100 mr-1 flex-shrink-0" />
+      <GripVertical className="w-3 h-3 text-gray-300 dark:text-gray-600 opacity-0 group-hover:opacity-100 mr-1 flex-shrink-0 cursor-grab" />
 
       {/* Expand/collapse for summary */}
       {isSummary ? (
@@ -95,7 +138,9 @@ export default function TaskRow({ task, depth }: TaskRowProps) {
 
       {/* Icon */}
       <span className="mr-1.5 flex-shrink-0">
-        {isMilestone ? (
+        {isQualityGate ? (
+          <Star className="w-3.5 h-3.5 text-amber-500" fill="currentColor" />
+        ) : isMilestone ? (
           <Diamond className="w-3.5 h-3.5 text-purple-500" />
         ) : isSummary ? (
           <FolderOpen className="w-3.5 h-3.5 text-blue-500" />

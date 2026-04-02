@@ -50,7 +50,7 @@ export const COLUMN_WIDTHS: Record<ZoomLevel, number> = {
 
 export const ROW_HEIGHT = 40;
 export const HEADER_HEIGHT = 60;
-export const COLUMN_HEADER_HEIGHT = 26;
+export const COLUMN_HEADER_HEIGHT = 40;
 export const LEFT_PANEL_DEFAULT_WIDTH = 420;
 
 export function getTimelineUnits(
@@ -96,7 +96,7 @@ export function getUnitEnd(date: Date, zoom: ZoomLevel): Date {
 export function formatUnitLabel(date: Date, zoom: ZoomLevel): string {
   switch (zoom) {
     case 'day':
-      return format(date, 'd');
+      return format(date, 'EEEEEE d');
     case 'week':
       return format(date, 'MMM d');
     case 'month':
@@ -108,8 +108,10 @@ export function formatUnitLabel(date: Date, zoom: ZoomLevel): string {
 
 export function formatHeaderLabel(date: Date, zoom: ZoomLevel): string {
   switch (zoom) {
-    case 'day':
-      return format(date, 'MMM yyyy');
+    case 'day': {
+      const monday = startOfWeek(date, { weekStartsOn: 1 });
+      return `w/c ${format(monday, 'dd MMM')}`;
+    }
     case 'week':
       return format(date, 'MMM yyyy');
     case 'month':

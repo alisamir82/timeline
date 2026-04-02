@@ -75,6 +75,7 @@ function buildProjectData(
     tags: [],
     orderIndex: i,
     collapsed: false,
+    splitGroupId: null,
     createdBy,
     createdAt: now,
     updatedAt: now,
@@ -88,6 +89,7 @@ function buildProjectData(
     type: 'FS' as const,
     lagDays: 0,
     createdAt: now,
+    manualRoute: null,
   }));
 
   return {

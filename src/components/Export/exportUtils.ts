@@ -27,6 +27,7 @@ export interface ExportOptions {
   stickyNotes: StickyNote[];
   zoom: ZoomLevel;
   dark?: boolean;
+  todayOverride?: Date | null;
 }
 
 function getTimelineBounds(opts: ExportOptions) {
@@ -215,7 +216,7 @@ function renderToCanvas(opts: ExportOptions): HTMLCanvasElement {
   });
 
   // ===== Today line =====
-  const todayX = gridLeft + dateToPixelOffset(new Date(), timelineStart, zoom);
+  const todayX = gridLeft + dateToPixelOffset(opts.todayOverride || new Date(), timelineStart, zoom);
   if (todayX > gridLeft && todayX < gridLeft + gridWidth) {
     ctx.strokeStyle = colors.todayText;
     ctx.lineWidth = 1.5;

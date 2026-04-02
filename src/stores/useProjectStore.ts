@@ -74,6 +74,7 @@ interface ProjectState {
   filters: FilterState;
   dragState: DragState | null;
   addNoteMode: boolean;
+  todayOverride: Date | null;
 
   // Theme & auto-save
   theme: ThemeMode;
@@ -93,11 +94,14 @@ interface ProjectState {
   setHoveredDependency: (id: string | null) => void;
   openTaskDetails: (id: string) => void;
   closeTaskDetails: () => void;
+  setTodayOverride: (date: Date | null) => void;
 
   // Task CRUD
   addTask: (partial: Partial<Task>) => void;
   updateTask: (id: string, updates: Partial<Task>) => void;
   deleteTask: (id: string) => void;
+  deleteSegment: (id: string) => void;
+  splitTask: (id: string) => void;
   moveTask: (id: string, newStartDate: string, newEndDate: string) => void;
   toggleCollapse: (id: string) => void;
   reorderTask: (id: string, newIndex: number) => void;
@@ -105,6 +109,7 @@ interface ProjectState {
   // Dependency CRUD
   addDependency: (predecessorId: string, successorId: string, type: DependencyType) => boolean;
   deleteDependency: (id: string) => void;
+  updateDependencyRoute: (id: string, manualRoute: number[] | null) => void;
 
   // Custom fields
   addCustomField: (field: Partial<CustomFieldDefinition>) => void;
@@ -134,6 +139,8 @@ interface ProjectState {
 
   // Computed
   getVisibleTasks: () => Task[];
+  getQualityGates: () => Task[];
+  getSplitSiblings: (splitGroupId: string) => Task[];
   getChildTasks: (parentId: string) => Task[];
   getTaskDependencies: (taskId: string) => Dependency[];
   getCustomFieldValuesForTask: (taskId: string) => CustomFieldValue[];
@@ -231,6 +238,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
   filters: defaultFilters,
   dragState: null,
   addNoteMode: false,
+  todayOverride: null,
 
   // Theme & auto-save
   theme: (localStorage.getItem('timeline-theme') as ThemeMode) || 'light',
@@ -267,6 +275,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
 
   openTaskDetails: (id) => set({ selectedTaskId: id, showTaskDetails: true }),
   closeTaskDetails: () => set({ showTaskDetails: false }),
+  setTodayOverride: (date) => set({ todayOverride: date }),
 
   // Task CRUD
   addTask: (partial) => {
@@ -274,6 +283,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     const { tasks, project, currentUser } = get();
     const maxOrder = tasks.length > 0 ? Math.max(...tasks.map((t) => t.orderIndex)) : -1;
 
+    const isSingleDate = partial.type === 'milestone' || partial.type === 'quality_gate';
     const newTask: Task = {
       id: uuidv4(),
       projectId: project.id,
@@ -282,8 +292,8 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       title: 'New Task',
       description: '',
       startDate: toISODate(new Date()),
-      endDate: toISODate(addDays(new Date(), 7)),
-      duration: 7,
+      endDate: isSingleDate ? toISODate(new Date()) : toISODate(addDays(new Date(), 7)),
+      duration: isSingleDate ? 0 : 7,
       ownerUserId: null,
       ownerText: '',
       status: 'Not Started',
@@ -294,6 +304,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       tags: [],
       orderIndex: maxOrder + 1,
       collapsed: false,
+      splitGroupId: null,
       createdBy: currentUser.id,
       createdAt: now,
       updatedAt: now,
@@ -318,7 +329,31 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       updatedTask.duration = Math.max(0, differenceInCalendarDays(end, start));
     }
 
-    set({ tasks: tasks.map((t) => (t.id === id ? updatedTask : t)) });
+    let newTasks = tasks.map((t) => (t.id === id ? updatedTask : t));
+
+    // Sync only structural/visual properties across split siblings
+    // Segment-owned fields (owner, status, rag, notes, percentComplete, dates) are independent
+    const SHARED_FIELDS = ['color', 'tags', 'parentId', 'type'];
+    if (updatedTask.splitGroupId) {
+      const sharedUpdates: Partial<Task> = {};
+      let hasShared = false;
+      for (const key of SHARED_FIELDS) {
+        if (key in updates) {
+          (sharedUpdates as Record<string, unknown>)[key] = (updates as Record<string, unknown>)[key];
+          hasShared = true;
+        }
+      }
+      if (hasShared) {
+        newTasks = newTasks.map((t) => {
+          if (t.splitGroupId === updatedTask.splitGroupId && t.id !== id) {
+            return { ...t, ...sharedUpdates, updatedAt: new Date().toISOString() };
+          }
+          return t;
+        });
+      }
+    }
+
+    set({ tasks: newTasks });
     get().addAuditEvent('update', 'task', id, oldTask, updatedTask);
     get().syncActiveProject();
   },
@@ -328,8 +363,12 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     const task = tasks.find((t) => t.id === id);
     if (!task) return;
 
-    const childIds = tasks.filter((t) => t.parentId === id).map((t) => t.id);
-    const allIdsToDelete = [id, ...childIds];
+    // Collect all IDs to delete: the task, its children, and all split siblings
+    const splitSiblingIds = task.splitGroupId
+      ? tasks.filter((t) => t.splitGroupId === task.splitGroupId).map((t) => t.id)
+      : [id];
+    const childIds = tasks.filter((t) => splitSiblingIds.includes(t.parentId!)).map((t) => t.id);
+    const allIdsToDelete = [...new Set([...splitSiblingIds, ...childIds])];
 
     set({
       tasks: tasks.filter((t) => !allIdsToDelete.includes(t.id)),
@@ -342,6 +381,155 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     });
     get().addAuditEvent('delete', 'task', id, task, null);
     get().syncActiveProject();
+  },
+
+  deleteSegment: (id) => {
+    const { tasks, dependencies, stickyNotes } = get();
+    const seg = tasks.find((t) => t.id === id);
+    if (!seg || !seg.splitGroupId || seg.id === seg.splitGroupId) return; // Can't delete main via this
+
+    const remainingSegments = tasks.filter(
+      (t) => t.splitGroupId === seg.splitGroupId && t.id !== seg.splitGroupId && t.id !== id
+    );
+
+    let newTasks = tasks.filter((t) => t.id !== id);
+    const newDeps = dependencies.filter(
+      (d) => d.predecessorTaskId !== id && d.successorTaskId !== id
+    );
+    const newNotes = stickyNotes.filter((n) => n.taskId !== id);
+
+    if (remainingSegments.length === 1) {
+      // Only 1 segment left: merge it back into the main, dissolve the split
+      const lastSeg = remainingSegments[0];
+      const main = tasks.find((t) => t.id === seg.splitGroupId);
+      if (main) {
+        const merged: Task = {
+          ...main,
+          startDate: lastSeg.startDate,
+          endDate: lastSeg.endDate,
+          duration: lastSeg.duration,
+          ownerUserId: lastSeg.ownerUserId,
+          ownerText: lastSeg.ownerText,
+          status: lastSeg.status,
+          rag: lastSeg.rag,
+          percentComplete: lastSeg.percentComplete,
+          notes: lastSeg.notes,
+          splitGroupId: null,
+          updatedAt: new Date().toISOString(),
+        };
+        // Remove the last segment and update the main
+        newTasks = newTasks
+          .filter((t) => t.id !== lastSeg.id)
+          .map((t) => (t.id === main.id ? merged : t));
+      }
+    }
+
+    set({ tasks: newTasks, dependencies: newDeps, stickyNotes: newNotes });
+    get().addAuditEvent('delete', 'segment', id, seg, null);
+    get().syncActiveProject();
+  },
+
+  splitTask: (id) => {
+    const { tasks, dependencies } = get();
+    const task = tasks.find((t) => t.id === id);
+    if (!task) return;
+    if (task.type !== 'task') return; // Only regular tasks can be split
+
+    const isFirstSplit = !task.splitGroupId;
+    const now = new Date().toISOString();
+
+    if (isFirstSplit) {
+      // First split: original becomes main-only, create 2 new segments
+      const groupId = task.id;
+      const start = parseISO(task.startDate);
+      const end = parseISO(task.endDate);
+      const totalDays = differenceInCalendarDays(end, start);
+      if (totalDays < 2) return;
+
+      const midDays = Math.floor(totalDays / 2);
+      const midDate = addDays(start, midDays);
+
+      const seg1Id = uuidv4();
+
+      const seg1: Task = {
+        ...task,
+        id: seg1Id,
+        splitGroupId: groupId,
+        endDate: toISODate(midDate),
+        duration: midDays,
+        orderIndex: task.orderIndex + 0.001,
+        createdAt: now,
+        updatedAt: now,
+      };
+
+      const seg2: Task = {
+        ...task,
+        id: uuidv4(),
+        splitGroupId: groupId,
+        startDate: toISODate(addDays(midDate, 1)),
+        endDate: task.endDate,
+        duration: totalDays - midDays - 1,
+        orderIndex: task.orderIndex + 0.002,
+        createdAt: now,
+        updatedAt: now,
+      };
+
+      // Mark original as main-only
+      const updatedMain = { ...task, splitGroupId: groupId, updatedAt: now };
+
+      const newTasks = tasks.map((t) => (t.id === id ? updatedMain : t));
+      newTasks.push(seg1, seg2);
+
+      // Move dependencies from main to segment 1
+      const newDeps = dependencies.map((d) => {
+        let updated = d;
+        if (d.predecessorTaskId === task.id) updated = { ...updated, predecessorTaskId: seg1Id };
+        if (d.successorTaskId === task.id) updated = { ...updated, successorTaskId: seg1Id };
+        return updated;
+      });
+
+      set({ tasks: newTasks, dependencies: newDeps });
+      get().addAuditEvent('split', 'task', id, task, { main: updatedMain, seg1, seg2 });
+      get().syncActiveProject();
+    } else {
+      // Re-split an existing segment (task.id !== task.splitGroupId)
+      if (task.id === task.splitGroupId) return; // Can't split the main record
+
+      const start = parseISO(task.startDate);
+      const end = parseISO(task.endDate);
+      const totalDays = differenceInCalendarDays(end, start);
+      if (totalDays < 2) return;
+
+      const midDays = Math.floor(totalDays / 2);
+      const midDate = addDays(start, midDays);
+
+      // Shorten existing segment to first half
+      const updatedSeg = {
+        ...task,
+        endDate: toISODate(midDate),
+        duration: midDays,
+        updatedAt: now,
+      };
+
+      // Create new segment for second half
+      const newSeg: Task = {
+        ...task,
+        id: uuidv4(),
+        startDate: toISODate(addDays(midDate, 1)),
+        endDate: task.endDate,
+        duration: totalDays - midDays - 1,
+        orderIndex: task.orderIndex + 0.001,
+        createdAt: now,
+        updatedAt: now,
+      };
+
+      const newTasks = tasks.map((t) => (t.id === id ? updatedSeg : t));
+      newTasks.push(newSeg);
+
+      set({ tasks: newTasks });
+      get().addAuditEvent('split', 'task', id, task, { updatedSeg, newSeg });
+      get().syncActiveProject();
+    }
   },
 
   moveTask: (id, newStartDate, newEndDate) => {
@@ -393,6 +581,7 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       type,
       lagDays: 0,
       createdAt: new Date().toISOString(),
+      manualRoute: null,
     };
 
     set({ dependencies: [...dependencies, newDep] });
@@ -406,6 +595,16 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
     const dep = dependencies.find((d) => d.id === id);
     set({ dependencies: dependencies.filter((d) => d.id !== id) });
     if (dep) get().addAuditEvent('delete', 'dependency', id, dep, null);
+    get().syncActiveProject();
+  },
+
+  updateDependencyRoute: (id, manualRoute) => {
+    const { dependencies } = get();
+    set({
+      dependencies: dependencies.map((d) =>
+        d.id === id ? { ...d, manualRoute } : d
+      ),
+    });
     get().syncActiveProject();
   },
 
@@ -589,7 +788,29 @@ export const useProjectStore = create<ProjectState>((set, get) => ({
       result = result.filter((t) => t.tags.some((tag) => filters.tags.includes(tag)));
     }
 
+    // Exclude quality gates from task rows (they render in the header bar)
+    result = result.filter((t) => t.type !== 'quality_gate');
+
+    // Deduplicate split groups: keep only first segment per group
+    const seenGroups = new Set<string>();
+    result = result.filter((t) => {
+      if (!t.splitGroupId) return true;
+      if (seenGroups.has(t.splitGroupId)) return false;
+      seenGroups.add(t.splitGroupId);
+      return true;
+    });
+
     return result;
+  },
+
+  getQualityGates: () => {
+    const { tasks } = get();
+    return tasks.filter((t) => t.type === 'quality_gate').sort((a, b) => a.orderIndex - b.orderIndex);
+  },
+
+  getSplitSiblings: (splitGroupId) => {
+    // Return only actual segments (not the main record where id === splitGroupId)
+    return get().tasks.filter((t) => t.splitGroupId === splitGroupId && t.id !== splitGroupId);
   },
 
   getChildTasks: (parentId) => {
